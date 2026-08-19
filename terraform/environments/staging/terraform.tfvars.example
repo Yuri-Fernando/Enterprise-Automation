@@ -1,0 +1,53 @@
+# Copy to terraform.tfvars (gitignored) and adjust before `terraform plan`.
+# staging = intermediate footprint: 2-instance ASG, t3.small, redundancy
+# knobs still off by default. Uncomment the "opt-in" block to rehearse a
+# more prod-like setup — every one of those adds real AWS cost.
+
+aws_region   = "sa-east-1"
+project_name = "enterprise-cloud-automation"
+environment  = "staging"
+owner        = "yuri-dubbern"
+cost_center  = "portfolio-lab"
+
+vpc_cidr             = "10.1.0.0/16"
+azs                  = ["sa-east-1a", "sa-east-1b"]
+public_subnet_cidrs  = ["10.1.0.0/24", "10.1.1.0/24"]
+private_subnet_cidrs = ["10.1.10.0/24", "10.1.11.0/24"]
+enable_nat_gateway   = false
+
+web_ingress_cidrs  = ["0.0.0.0/0"]
+admin_access_cidrs = []
+
+os_type          = "linux"
+instance_type    = "t3.small"
+key_name         = null
+min_size         = 1
+desired_capacity = 2
+max_size         = 4
+
+db_instance_class      = "db.t3.small"
+db_multi_az            = false
+db_skip_final_snapshot = true
+db_deletion_protection = false
+
+create_sns_topic  = false
+alarm_email       = ""
+enable_ec2_alarms = true
+enable_alb_alarms = true
+enable_rds_alarms = true
+
+# The dev environment owns GitHub OIDC provider creation by convention (AWS
+# allows only one provider per URL per account) — staging reuses it:
+create_github_oidc_provider       = false
+existing_github_oidc_provider_arn = "" # fill in with dev's output after dev apply
+github_org  = "Yuri-Fernando"
+github_repo = "Caterpillar-Enterprise-Cloud-Automation"
+state_bucket_arn     = ""
+state_lock_table_arn = ""
+
+# --- Opt-in: rehearse prod-like redundancy (adds real AWS cost) -----------
+# enable_nat_gateway      = true
+# single_nat_gateway      = true
+# db_multi_az             = true
+# db_skip_final_snapshot  = false
+# min_size                = 2

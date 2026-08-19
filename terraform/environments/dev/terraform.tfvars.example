@@ -1,0 +1,43 @@
+# Copy to terraform.tfvars (gitignored) and adjust before `terraform plan`.
+# dev = minimum footprint: single small instance, no NAT Gateway, no Multi-AZ
+# RDS, no deletion protection. Safe to spin up/tear down repeatedly.
+
+aws_region   = "sa-east-1"
+project_name = "enterprise-cloud-automation"
+environment  = "dev"
+owner        = "yuri-dubbern"
+cost_center  = "portfolio-lab"
+
+vpc_cidr             = "10.0.0.0/16"
+azs                  = ["sa-east-1a", "sa-east-1b"]
+public_subnet_cidrs  = ["10.0.0.0/24", "10.0.1.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
+enable_nat_gateway   = false
+
+web_ingress_cidrs  = ["0.0.0.0/0"]
+admin_access_cidrs = []
+
+os_type       = "linux"
+instance_type = "t3.micro"
+key_name      = null
+min_size      = 1
+desired_capacity = 1
+max_size      = 2
+
+db_instance_class      = "db.t3.micro"
+db_multi_az            = false
+db_skip_final_snapshot = true
+db_deletion_protection = false
+
+create_sns_topic  = false
+alarm_email       = ""
+enable_ec2_alarms = true
+enable_alb_alarms = true
+enable_rds_alarms = true
+
+# Set once you know which repo/branch is allowed to assume this role, and
+# after the state bucket exists (see docs/setup/aws-setup.md).
+github_org  = "Yuri-Fernando"
+github_repo = "Caterpillar-Enterprise-Cloud-Automation"
+state_bucket_arn      = ""
+state_lock_table_arn  = ""

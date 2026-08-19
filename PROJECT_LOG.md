@@ -128,6 +128,35 @@ fechados sem reescrever `troubleshooting/`/`inventory/` já existentes:
   checagem de exit code).
 - Log detalhado: `docs/logs/automation-python.md`.
 
+**Trilha Terraform / IaC — concluída (Claude):** gaps fechados sem reescrever
+`providers.tf`/`variables.tf`/`backend.tf` (raiz) nem os módulos
+`networking`/`compute`/`iam`/`security` já existentes:
+- `terraform/modules/database/outputs.tf` (faltava): `endpoint`, `address`,
+  `port`, `db_instance_id`/`arn`, `db_name`, `username`,
+  `master_user_secret_arn`, `db_subnet_group_name`.
+- `terraform/modules/monitoring/` (módulo novo): alarmes CloudWatch de
+  EC2/ASG (CPU alto, status check), ALB (5xx, unhealthy hosts) e RDS (CPU,
+  free storage), todos opt-in via `enable_*_alarms`; tópico SNS opcional
+  (próprio ou externo); log groups genéricos via `for_each`.
+- `terraform/environments/{dev,staging,prod}/` (vazios → populados):
+  `providers.tf`, `backend.tf` (S3+DynamoDB comentado, key por ambiente),
+  `variables.tf`, `main.tf` (idêntico nos 3 — chama todos os módulos,
+  diferença só em variáveis) e `terraform.tfvars.example`. dev = mínimo
+  (t3.micro, 1 instância, sem NAT/Multi-AZ); staging = intermediário
+  (t3.small, 2 instâncias); prod = mais redundância parametrizada
+  (NAT por AZ, Multi-AZ RDS, deletion protection) mas **tudo opt-in** —
+  nenhum ambiente força custo AWS só pelos defaults de `variables.tf`.
+- Corrigidos 2 bugs pré-existentes que bloqueavam `terraform validate`:
+  atributo `storage_encrypted` duplicado em `modules/database/main.tf`, e
+  `thumbprint_list` do OIDC do GitHub Actions com 39 (não 40) caracteres
+  hex em `modules/iam/main.tf`.
+- `terraform fmt -recursive` (limpo, sem diffs) e `terraform init
+  -backend=false && terraform validate` rodados nos 3 ambientes —
+  **Success! The configuration is valid.** nos 3. `terraform plan`/`apply`
+  **não** executados (decisão do projeto — evitar custo/depender de
+  credenciais reais).
+- Log detalhado: `docs/logs/terraform.md`.
+
 **Trilha Dashboard + Testes de Infraestrutura — concluída (Claude):** log
 detalhado em [`docs/logs/dashboard-tests.md`](docs/logs/dashboard-tests.md).
 

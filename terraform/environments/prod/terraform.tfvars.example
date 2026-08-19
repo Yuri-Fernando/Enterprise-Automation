@@ -1,0 +1,67 @@
+# Copy to terraform.tfvars (gitignored) and adjust before `terraform plan`.
+#
+# IMPORTANT: this file's top section keeps the same no-forced-cost defaults
+# as dev/staging on purpose — a portfolio reviewer (or you) should be able
+# to `terraform plan` this environment without triggering NAT Gateway,
+# Multi-AZ RDS or per-AZ redundancy costs by accident. The bottom
+# "Recommended for a real prod rollout" section documents, uncommented
+# variable by variable, what you'd actually flip on for production traffic
+# and what it costs.
+
+aws_region   = "sa-east-1"
+project_name = "enterprise-cloud-automation"
+environment  = "prod"
+owner        = "yuri-dubbern"
+cost_center  = "portfolio-lab"
+
+vpc_cidr             = "10.2.0.0/16"
+azs                  = ["sa-east-1a", "sa-east-1b"]
+public_subnet_cidrs  = ["10.2.0.0/24", "10.2.1.0/24"]
+private_subnet_cidrs = ["10.2.10.0/24", "10.2.11.0/24"]
+enable_nat_gateway   = false
+single_nat_gateway   = false
+
+web_ingress_cidrs  = ["0.0.0.0/0"]
+admin_access_cidrs = []
+
+os_type          = "linux"
+instance_type    = "t3.small"
+key_name         = null
+min_size         = 1
+desired_capacity = 2
+max_size         = 6
+
+db_instance_class      = "db.t3.small"
+db_multi_az            = false
+db_skip_final_snapshot = true
+db_deletion_protection = false
+
+create_sns_topic  = false
+alarm_email       = ""
+enable_ec2_alarms = true
+enable_alb_alarms = true
+enable_rds_alarms = true
+
+create_github_oidc_provider       = false
+existing_github_oidc_provider_arn = "" # fill in with dev's output after dev apply
+github_org  = "Yuri-Fernando"
+github_repo = "Caterpillar-Enterprise-Cloud-Automation"
+state_bucket_arn     = ""
+state_lock_table_arn = ""
+
+# ---------------------------------------------------------------------------
+# Recommended for a real prod rollout (uncomment deliberately — each line
+# adds real, ongoing AWS cost):
+#
+# enable_nat_gateway             = true   # ~US$0.045/hr + data processing
+# single_nat_gateway             = false  # one NAT per AZ instead of one shared
+# min_size                       = 2      # always >=2 instances across AZs
+# db_multi_az                    = true   # roughly doubles RDS cost
+# db_skip_final_snapshot         = false  # keep a snapshot on destroy
+# db_deletion_protection         = true   # blocks accidental terraform destroy
+# enable_alb_deletion_protection = true   # blocks accidental ALB deletion
+# enable_https_listener          = true   # requires certificate_arn below
+# certificate_arn                = "arn:aws:acm:sa-east-1:ACCOUNT_ID:certificate/CERT_ID"
+# create_sns_topic                = true
+# alarm_email                     = "you@example.com"
+# ---------------------------------------------------------------------------
