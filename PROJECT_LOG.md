@@ -77,6 +77,57 @@ etapa, arquivo central de registro e sistema de versionamento.
 parte é decisão/execução do usuário (login AWS para apply real, iniciar
 Docker Desktop, revisar PRs das trilhas).
 
+### 2026-08-19 — Sessão 2: Retomada após limite de sessão da API (Claude)
+
+**Contexto:** As 5 trilhas paralelas da Sessão 1 pararam no meio da execução
+por terem batido o limite de sessão da API (reset 17h50 America/Sao_Paulo).
+Auditoria do repositório mostra o que cada trilha completou e o que falta.
+
+**Gaps identificados:**
+- `terraform/`: falta módulo `monitoring/`, `environments/{dev,staging,prod}`
+  estão vazios (sem `main.tf`/`variables.tf`/`.tfvars.example`), módulo
+  `database` sem `outputs.tf`.
+- `ansible/`: role `webserver` vazia (sem tasks), `ansible/playbooks/` vazio.
+- `powershell/`: módulo `InfraOps`, `scripts/` e `tests/` (Pester) vazios.
+- `automation/`: `cli/` só tem `__init__.py` (sem controller real),
+  `reports/` idem, `automation/tests/` vazio (sem pytest real).
+- `dashboard/`: falta `css/` e `js/app.js` (só existe `data.example.json`).
+- `notebooks/`: **completamente vazio** — pendência crítica pedida
+  explicitamente pelo usuário (um notebook executável por etapa do roadmap).
+- `tests/terraform` e `tests/ansible`: vazios.
+- `docs/logs/`: vazio (nenhuma trilha gravou seu log detalhado ainda).
+
+**Ação:** re-disparar as trilhas em paralelo, focadas em completar apenas os
+gaps acima (evitar retrabalho do que já existe). Cada trilha grava
+`docs/logs/<trilha>.md` e atualiza esta seção ao final.
+
+**Trilha Automação Python — concluída (Claude):** gaps de `automation/`
+fechados sem reescrever `troubleshooting/`/`inventory/` já existentes:
+- `automation/cli/main.py` + `automation/cli/__main__.py`: CLI real (Click)
+  com subcomandos `health-check`, `inventory`, `incident run` e `report`
+  (`python -m automation.cli --help`).
+- `automation/reports/incident_report.py`: renderização de incidente em
+  Markdown/JSON (contrato de campos = tabela `incidents` do
+  `database/schema.sql`), leitura/gravação em MySQL via
+  `mysql-connector-python` com `DatabaseUnavailableError` como fallback
+  claro quando driver/DB não estão disponíveis (caso deste ambiente).
+- `automation/orchestrator.py`: orquestrador de self-healing
+  (detecta → diagnostica → remedia → valida → gera incidente), reproduzindo
+  o fluxo "Incident #017" do `escopo.md`; remediação padrão reinicia um
+  processo local (`python -m http.server`) para rodar 100% offline, com
+  variantes Ansible/PowerShell delegando para
+  `automation/troubleshooting/remediation.py`.
+- `automation/tests/`: 51 testes pytest reais cobrindo troubleshooting
+  (health/network/disk/service/remediation), inventário AWS via `moto`
+  (`@mock_aws`, nenhuma chamada real à AWS), orquestrador e CLI
+  (`click.testing.CliRunner`). Rodados com
+  `C:\Users\Yuri_\AppData\Local\Programs\Python\Python310\python.exe -m pytest automation/tests`
+  — **51 passed** (um bug real encontrado e corrigido no processo: o
+  subcomando `health-check --json` retornava `exit code 0` mesmo com
+  serviço não saudável, por causa de um `return` antecipado antes da
+  checagem de exit code).
+- Log detalhado: `docs/logs/automation-python.md`.
+
 <!--
 Template para novas sessões:
 
