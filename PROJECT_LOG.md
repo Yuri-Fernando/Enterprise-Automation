@@ -188,6 +188,51 @@ detalhado em [`docs/logs/dashboard-tests.md`](docs/logs/dashboard-tests.md).
   `os.get_blocking`, POSIX-only; reforça a decisão já registrada acima de
   que Ansible completo roda de verdade só no CI/Ubuntu ou WSL).
 
+**Trilha Notebooks + Documentação — concluída (Claude):** fechada a
+pendência crítica pedida explicitamente pelo usuário (`notebooks/`
+completamente vazio). Criados 6 notebooks Jupyter em `notebooks/`, um por
+etapa do roadmap (`CHANGELOG.md` v0.1→v1.0), todos validados de ponta a
+ponta com `jupyter nbconvert --to notebook --execute` (Python 3.10
+canônico) — 0 erros em todas as células, em todos os 6 notebooks:
+- `00_overview.ipynb`: localiza a raiz do projeto, lê `PROJECT_LOG.md`,
+  mostra a arquitetura (ASCII) e resume o papel de cada notebook seguinte.
+- `01_terraform_foundation.ipynb`: `terraform fmt -check -recursive` real
+  (passou) sobre `terraform/`; monta um root sintético temporário (fora do
+  repo) referenciando os 6 módulos reais (`networking`, `compute`,
+  `database`, `iam`, `security`, `monitoring`) via `source = "./modules/..."`
+  e roda `terraform init -backend=false` + `terraform validate` de verdade
+  (`Success! The configuration is valid.`) — sem nunca `apply`/`plan` contra
+  AWS real; provider baixado do registry público, sem credenciais.
+- `02_automation_linux_windows.ipynb`: roda `health_check`/`disk_check`/
+  `service_check` de verdade contra um `http.server` local descartável
+  (webroot temporário); inspeciona a estrutura das roles Ansible e do
+  módulo PowerShell `InfraOps` por leitura de arquivos.
+- `03_cicd_security.ipynb`: parsing real (PyYAML) dos 5 workflows em
+  `.github/workflows/*.yml` (jobs/steps/triggers/condições `if`) + explica
+  `.checkov.yaml`, `.tflint.hcl`, `.pre-commit-config.yaml`.
+- `04_enterprise_observability.ipynb`: `automation/inventory/aws_inventory.py`
+  rodando contra AWS mockada com `moto` (`@mock_aws`, zero custo/credencial
+  real) — cria VPC/subnet/2 EC2/1 RDS fake e lista o inventário; lê e
+  explica o schema MySQL (`database/schema.sql`); mostra como
+  `dashboard/js/app.js` consome `data.example.json` (fallback gracioso
+  quando MySQL local não está rodando).
+- `05_self_healing_incident.ipynb`: reproduz o **Incident #017** do
+  `escopo.md` de ponta a ponta e de verdade — derruba um processo local
+  ("nginx"), detecta via `service_check`, coleta diagnóstico (disco +
+  CPU/RAM), decide e executa remediação (`restart_local_process`, com
+  tentativa real de Ansible quando disponível), valida a recuperação
+  (`HTTP 200` real) e gera o relatório final no formato do incidente do
+  escopo, com o `INSERT SQL` pronto para a tabela `incidents`.
+
+Decisões: nenhum notebook depende de `terraform/environments/` estar
+completo (usa root sintético próprio, sempre limpo ao final); nenhum
+notebook chama AWS real, precisa de Docker/MySQL rodando ou de credenciais;
+todo processo de demonstração usa webroots minúsculos/descartáveis (não a
+árvore do projeto) para os health checks responderem instantaneamente; e
+toda dependência opcional ausente (`terraform`, `ansible-playbook`, `pwsh`,
+`pymysql`) degrada graciosamente com mensagem clara em vez de quebrar o
+notebook. Log detalhado: [`docs/logs/notebooks-docs.md`](docs/logs/notebooks-docs.md).
+
 <!--
 Template para novas sessões:
 
