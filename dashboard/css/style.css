@@ -1,0 +1,218 @@
+/* =============================================================================
+   Enterprise Cloud Automation & Infrastructure Platform — Dashboard styles
+   Clean/enterprise look on top of Bootstrap 5. No build step, no framework
+   beyond Bootstrap + jQuery (loaded in index.html).
+   ============================================================================= */
+
+:root {
+  --ecap-bg: #f4f6f9;
+  --ecap-surface: #ffffff;
+  --ecap-navy: #10233d;
+  --ecap-navy-2: #16324f;
+  --ecap-accent: #f4a300; /* CAT-style amber accent, used sparingly */
+  --ecap-text-muted: #64748b;
+  --ecap-border: #e2e8f0;
+  --ecap-success: #1a7f37;
+  --ecap-danger: #c62828;
+  --ecap-radius: 0.6rem;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--ecap-bg);
+  color: #1f2937;
+  font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---------------------------------------------------------------- Navbar */
+
+.app-navbar {
+  background: linear-gradient(90deg, var(--ecap-navy) 0%, var(--ecap-navy-2) 100%);
+  box-shadow: 0 2px 8px rgba(16, 35, 61, 0.25);
+}
+
+.app-navbar .navbar-brand i {
+  color: var(--ecap-accent);
+}
+
+#last-updated {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- Cards */
+
+.card {
+  border-radius: var(--ecap-radius);
+}
+
+.summary-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background-color: var(--ecap-surface);
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(16, 35, 61, 0.1) !important;
+}
+
+.summary-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.summary-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ecap-navy);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-label {
+  font-size: 0.78rem;
+  color: var(--ecap-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.card-header {
+  border-bottom: 1px solid var(--ecap-border);
+  font-weight: 600;
+  color: var(--ecap-navy);
+}
+
+/* ---------------------------------------------------------------- Tables */
+
+.table-responsive {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+#inventory-table thead th,
+#executions-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ecap-text-muted);
+}
+
+#inventory-table td,
+#executions-table td {
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.env-badge {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+}
+
+.env-dev     { background-color: #e0e7ff; color: #3730a3; }
+.env-staging { background-color: #fef3c7; color: #92400e; }
+.env-prod    { background-color: #fee2e2; color: #991b1b; }
+
+.status-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+}
+
+.status-dot.status-running,
+.status-dot.status-available,
+.status-dot.status-active,
+.status-dot.status-success {
+  background-color: var(--ecap-success);
+}
+
+.status-dot.status-stopped,
+.status-dot.status-failed {
+  background-color: var(--ecap-danger);
+}
+
+/* ---------------------------------------------------------------- Incident timeline */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline-item {
+  position: relative;
+  padding: 0.9rem 1rem 0.9rem 2.6rem;
+  border-left: 3px solid var(--ecap-border);
+  margin-left: 0.6rem;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -0.55rem;
+  top: 1.15rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background-color: var(--ecap-border);
+  border: 2px solid var(--ecap-surface);
+}
+
+.timeline-item.status-resolved::before {
+  background-color: var(--ecap-success);
+}
+
+.timeline-item.status-open::before {
+  background-color: var(--ecap-danger);
+}
+
+.timeline-item:last-child {
+  border-left-color: transparent;
+}
+
+.timeline-item .incident-title {
+  font-weight: 600;
+  color: var(--ecap-navy);
+}
+
+.timeline-item .incident-meta {
+  font-size: 0.82rem;
+  color: var(--ecap-text-muted);
+}
+
+.timeline-item .incident-detail {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+/* ---------------------------------------------------------------- Utilities */
+
+.text-mono {
+  font-family: "Cascadia Code", "Consolas", "SFMono-Regular", Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+footer code {
+  background-color: #eef1f5;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 575.98px) {
+  .summary-value {
+    font-size: 1.3rem;
+  }
+}

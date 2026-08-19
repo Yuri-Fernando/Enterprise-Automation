@@ -128,6 +128,37 @@ fechados sem reescrever `troubleshooting/`/`inventory/` já existentes:
   checagem de exit code).
 - Log detalhado: `docs/logs/automation-python.md`.
 
+**Trilha Dashboard + Testes de Infraestrutura — concluída (Claude):** log
+detalhado em [`docs/logs/dashboard-tests.md`](docs/logs/dashboard-tests.md).
+
+- `dashboard/css/style.css` criado (tema enterprise/clean sobre Bootstrap 5,
+  navbar navy, badges de ambiente, timeline de incidentes).
+- `dashboard/js/app.js` criado — jQuery puro, lê `js/data.example.json` e
+  renderiza cards de resumo (recursos, incidentes abertos/resolvidos, MTTR),
+  tabela de inventário, tabela de execuções recentes e timeline de
+  incidentes. `index.html` não foi reescrito, só ganhou a tag `<script>` do
+  jQuery (faltava) e um `dashboard/README.md` novo (o HTML já linkava para
+  ele).
+- `dashboard/js/data.example.json` conferido contra `database/schema.sql`:
+  já estava coerente (mesmos campos/enums de `executions`/`incidents`/
+  `inventory`), nenhum ajuste de shape necessário.
+- `tests/terraform/test-terraform.sh` + `.ps1` criados: rodam `terraform
+  fmt -check` e `terraform validate` (via `init -backend=false`, sem
+  `plan`/`apply`) em todo diretório com `.tf` sob `terraform/modules/*` e
+  `terraform/environments/*` (descoberta dinâmica — os environments já
+  tinham sido preenchidos pela trilha de Terraform em paralelo e foram
+  cobertos automaticamente). Achados: bug real de HCL em
+  `terraform/modules/database/main.tf` (`storage_encrypted` duplicado) e
+  formatação fora do padrão em `environments/*` e `modules/compute`
+  (não corrigidos por esta trilha). `validate` ficou `SKIP` nesta sandbox
+  local por rede muito lenta para baixar o provider AWS do Registry
+  (documentado — funciona no runner Ubuntu do CI).
+- `tests/ansible/test-ansible.sh` criado: `yamllint` (PASS local, real) +
+  `ansible-playbook --syntax-check` (SKIP local — confirmado que o próprio
+  `ansible-core` não inicializa no Python nativo do Windows por depender de
+  `os.get_blocking`, POSIX-only; reforça a decisão já registrada acima de
+  que Ansible completo roda de verdade só no CI/Ubuntu ou WSL).
+
 <!--
 Template para novas sessões:
 
