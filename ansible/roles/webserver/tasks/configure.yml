@@ -1,0 +1,43 @@
+---
+# tasks/configure.yml — role: webserver
+# Gera e ativa o vhost a partir do template, com index.html mínimo de
+# smoke-test (substituído pela aplicação real no deploy).
+
+- name: Deploy nginx vhost from template
+  ansible.builtin.template:
+    src: vhost.conf.j2
+    dest: /etc/nginx/sites-available/{{ inventory_hostname }}.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: reload nginx
+
+- name: Enable vhost (symlink sites-available -> sites-enabled)
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ inventory_hostname }}.conf
+    dest: /etc/nginx/sites-enabled/{{ inventory_hostname }}.conf
+    state: link
+    force: true
+  become: true
+  notify: reload nginx
+
+- name: Drop a minimal index.html placeholder (skip if app already deployed)
+  ansible.builtin.copy:
+    dest: "{{ webserver_document_root }}/index.html"
+    content: |
+      <!doctype html>
+      <html><body>
+      <h1>{{ inventory_hostname }}</h1>
+      <p>Enterprise Cloud Automation &amp; Infrastructure Platform — nginx configurado via Ansible.</p>
+      </body></html>
+    owner: www-data
+    group: www-data
+    mode: "0644"
+    force: false
+  become: true
+
+- name: Validate nginx configuration syntax
+  ansible.builtin.command: nginx -t
+  become: true
+  changed_when: false

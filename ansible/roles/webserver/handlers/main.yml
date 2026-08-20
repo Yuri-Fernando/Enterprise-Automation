@@ -1,0 +1,19 @@
+---
+# handlers/main.yml — role: webserver
+
+- name: reload nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  listen: "reload nginx"
+
+- name: restart nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+  listen: "restart nginx"
+
+- name: reload ufw
+  community.general.ufw:
+    state: reloaded
+  listen: "reload ufw"

@@ -1,0 +1,13 @@
+---
+# tasks/firewall.yml — role: webserver
+# Libera a porta HTTP do nginx no ufw, adicional às regras da role base
+# (SSH). Idempotente via módulo community.general.ufw.
+
+- name: Allow HTTP port for nginx
+  community.general.ufw:
+    rule: allow
+    port: "{{ webserver_http_port | string }}"
+    proto: tcp
+    comment: "nginx (webserver role)"
+  become: true
+  notify: reload ufw

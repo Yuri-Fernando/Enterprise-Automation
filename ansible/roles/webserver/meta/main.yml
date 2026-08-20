@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: webserver
+  author: Yuri Fernando Dubbern
+  description: >-
+    Instala e configura nginx como reverse proxy / servidor web em
+    instâncias Linux (Ubuntu/Debian) provisionadas pelo Terraform. Depende
+    da role `base` (usuários, firewall, hardening) já ter sido aplicada.
+    Parte do Enterprise Cloud Automation & Infrastructure Platform (projeto
+    de portfólio).
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - nginx
+    - webserver
+    - reverse-proxy
+
+dependencies:
+  - role: base

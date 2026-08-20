@@ -1,0 +1,53 @@
+---
+# deploy.yml — deploy de aplicação no grupo linux_web
+# Assume que site.yml já rodou (nginx instalado/configurado). Este playbook
+# só troca o conteúdo servido, sem re-tocar hardening/firewall.
+#
+# Uso:
+#   ansible-playbook -i inventory/hosts.example.ini playbooks/deploy.yml \
+#       -e app_src_dir=./dist -e app_version=1.4.2
+
+- name: Deploy application artifact to web tier
+  hosts: linux_web
+  become: true
+  gather_facts: false
+  vars:
+    app_src_dir: "{{ app_src_dir | default('./dist') }}"
+    app_version: "{{ app_version | default('unversioned') }}"
+  tasks:
+    - name: Assert app_src_dir was provided and exists on the control node
+      ansible.builtin.stat:
+        path: "{{ app_src_dir }}"
+      delegate_to: localhost
+      become: false
+      register: _app_src_stat
+
+    - name: Fail fast if app_src_dir is missing
+      ansible.builtin.fail:
+        msg: "app_src_dir '{{ app_src_dir }}' não existe no control node. Passe -e app_src_dir=./caminho"
+      when: not _app_src_stat.stat.exists
+
+    - name: Synchronize application artifact to document root
+      ansible.posix.synchronize:
+        src: "{{ app_src_dir }}/"
+        dest: "{{ webserver_document_root | default('/var/www/html') }}/"
+        delete: true
+        rsync_opts:
+          - "--exclude=.git"
+      notify: reload nginx
+
+    - name: Record deployed version marker
+      ansible.builtin.copy:
+        dest: "{{ webserver_document_root | default('/var/www/html') }}/VERSION"
+        content: "{{ app_version }}\n"
+        mode: "0644"
+
+    - name: Validate nginx configuration after deploy
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

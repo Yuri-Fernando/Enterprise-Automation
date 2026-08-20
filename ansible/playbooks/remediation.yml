@@ -1,0 +1,40 @@
+---
+# remediation.yml — remediação automática (self-healing, lado Linux)
+# Chamado pelo automation/orchestrator.py quando healthcheck.yml reporta
+# UNHEALTHY. Reinicia o serviço-alvo e revalida.
+#
+# Uso:
+#   ansible-playbook -i inventory/hosts.example.ini playbooks/remediation.yml \
+#       --limit web-01 -e remediation_service=nginx
+
+- name: Automated remediation — restart unhealthy service and validate
+  hosts: "{{ target_hosts | default('linux_web') }}"
+  become: true
+  gather_facts: false
+  vars:
+    remediation_service: "{{ remediation_service | default('nginx') }}"
+    remediation_port: "{{ remediation_port | default(webserver_http_port | default(80)) }}"
+  tasks:
+    - name: Restart target service
+      ansible.builtin.service:
+        name: "{{ remediation_service }}"
+        state: restarted
+      register: _restart_result
+
+    - name: Wait for service port to accept connections again
+      ansible.builtin.wait_for:
+        port: "{{ remediation_port }}"
+        host: 127.0.0.1
+        timeout: 30
+        state: started
+      register: _validation
+
+    - name: Report remediation outcome
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          service: "{{ remediation_service }}"
+          action: "restart"
+          restarted: "{{ _restart_result is changed }}"
+          validated: "{{ _validation is succeeded }}"
+          status: "{{ 'RESOLVED' if _validation is succeeded else 'FAILED' }}"

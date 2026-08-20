@@ -233,6 +233,43 @@ toda dependência opcional ausente (`terraform`, `ansible-playbook`, `pwsh`,
 `pymysql`) degrada graciosamente com mensagem clara em vez de quebrar o
 notebook. Log detalhado: [`docs/logs/notebooks-docs.md`](docs/logs/notebooks-docs.md).
 
+**Trilha Ansible + PowerShell — concluída (Claude, assumida diretamente
+depois que o agente em background ficou lento demais):** gaps fechados sem
+reescrever `ansible/roles/base/*` nem `ansible/inventory/*` já existentes.
+
+- Role `webserver` completada: `tasks/configure.yml` (vhost + ativação +
+  `nginx -t`), `tasks/firewall.yml` (libera porta HTTP no ufw),
+  `templates/vhost.conf.j2` (com endpoint `/healthz` consumido pelo health
+  check), handler `reload ufw` adicionado (faltava).
+- `ansible/playbooks/` (vazio → 4 playbooks): `site.yml` (base + webserver),
+  `deploy.yml` (sync de artefato + versão + reload), `healthcheck.yml`
+  (espelha `health_check.py` no lado remoto), `remediation.yml` (restart +
+  revalidação, chamado pelo orchestrator Python na variante Ansible).
+- Módulo PowerShell `InfraOps` (novo, `powershell/modules/InfraOps/`):
+  `Get-SystemHealth`, `Get-ServiceStatus`, `Restart-ServiceSafe`,
+  `Get-DiskUsage`, `Set-LocalUserPresent`, `Set-FirewallRule` — espelha no
+  Windows o que os roles Ansible fazem no Linux.
+- `powershell/scripts/`: `health-check.ps1`, `install-app.ps1`,
+  `configure-firewall.ps1`, todos usando o módulo `InfraOps`.
+- `powershell/tests/InfraOps.Tests.ps1` (Pester 5+): 9 testes, todas as
+  chamadas ao SO mockadas. Instalado Pester (`Install-Module Pester
+  -MinimumVersion 5.0.0 -Scope CurrentUser` — só havia Pester 3.4 nativo do
+  Windows) e **rodado de verdade**: `Tests Passed: 8, Failed: 0, Skipped:
+  1` (skip documentado — depende do módulo
+  `Microsoft.PowerShell.LocalAccounts`, ausente nesta instalação PS7
+  standalone, presente no CI `windows-latest`).
+- 2 bugs reais encontrados e corrigidos rodando os testes: a função
+  `New-LocalUser` fazia *shadowing* do cmdlet nativo de mesmo nome
+  (quebrava o `Mock` do Pester) — renomeada para `Set-LocalUserPresent`;
+  `Set-FirewallRule` passava o objeto via pipeline para
+  `Set-NetFirewallRule`, o que falhava o binding em teste — trocado para
+  `-DisplayName` direto.
+- Log detalhado: [`docs/logs/config-automation.md`](docs/logs/config-automation.md).
+
+**Sessão 2 encerrada — as 6 trilhas identificadas nos gaps estão concluídas
+e commitadas localmente (nenhum `git push` feito ainda).** Próximo passo:
+revisão do usuário + decisões da seção "Pendências / Sua Parte" abaixo.
+
 <!--
 Template para novas sessões:
 

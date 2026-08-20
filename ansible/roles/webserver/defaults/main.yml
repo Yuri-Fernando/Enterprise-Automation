@@ -1,0 +1,29 @@
+---
+# defaults/main.yml — role: webserver
+# Valores padrão sobrescrevíveis via inventory/group_vars/host_vars ou -e.
+
+# Pacote nginx a instalar (nome do pacote apt).
+webserver_package: nginx
+
+# Porta HTTP exposta pelo nginx. Deve casar com `http_port` do grupo
+# `linux_web` no inventário e com a regra de firewall liberada abaixo.
+webserver_http_port: 80
+
+# Document root servido pelo vhost padrão.
+webserver_document_root: /var/www/html
+
+# Nome do server_block (usado no `server_name` do vhost). "_" == catch-all.
+webserver_server_name: "_"
+
+# Corpo máximo de upload aceito pelo nginx.
+webserver_client_max_body_size: "10m"
+
+# Cabeçalhos de segurança básicos aplicados no vhost.
+webserver_security_headers_enabled: true
+
+# Endpoint de health check exposto sem logging (usado por load balancers /
+# automation/troubleshooting/health_check.py).
+webserver_healthcheck_path: /healthz
+
+# Libera a porta HTTP no firewall (role base) além da regra herdada.
+webserver_firewall_enabled: true

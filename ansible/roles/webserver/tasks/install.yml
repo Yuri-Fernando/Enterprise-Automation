@@ -1,0 +1,30 @@
+---
+# tasks/install.yml — role: webserver
+
+- name: Update apt cache (max 1h old)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Install nginx
+  ansible.builtin.apt:
+    name: "{{ webserver_package }}"
+    state: present
+  become: true
+
+- name: Ensure document root exists
+  ansible.builtin.file:
+    path: "{{ webserver_document_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  become: true
+
+- name: Remove default nginx vhost (evita conflito de server_name)
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: true
+  notify: reload nginx

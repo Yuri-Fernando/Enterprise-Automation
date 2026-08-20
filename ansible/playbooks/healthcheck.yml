@@ -1,0 +1,58 @@
+---
+# healthcheck.yml — roda os checks de troubleshooting remotamente
+# Espelha, no lado Linux, o que automation/troubleshooting/*.py faz
+# localmente: verifica serviço, porta HTTP e uso de disco. Pensado para
+# ser chamado a partir do orquestrador Python (via `ansible-runner`/
+# subprocess) ou manualmente em diagnóstico.
+#
+# Uso:
+#   ansible-playbook -i inventory/hosts.example.ini playbooks/healthcheck.yml \
+#       --limit web-01 -e healthcheck_service=nginx -e healthcheck_port=80
+
+- name: Remote health check (service, port, disk)
+  hosts: "{{ target_hosts | default('linux_web') }}"
+  become: true
+  gather_facts: true
+  vars:
+    healthcheck_service: "{{ healthcheck_service | default('nginx') }}"
+    healthcheck_port: "{{ healthcheck_port | default(webserver_http_port | default(80)) }}"
+    healthcheck_disk_threshold_percent: "{{ healthcheck_disk_threshold_percent | default(85) }}"
+  tasks:
+    - name: Check service status
+      ansible.builtin.service_facts:
+
+    - name: Report service state
+      ansible.builtin.set_fact:
+        _service_state: "{{ ansible_facts.services[healthcheck_service + '.service'].state | default('unknown') }}"
+
+    - name: Check listening port
+      ansible.builtin.wait_for:
+        port: "{{ healthcheck_port }}"
+        host: 127.0.0.1
+        timeout: 3
+        state: started
+      register: _port_check
+      ignore_errors: true
+
+    - name: Check disk usage on root filesystem
+      ansible.builtin.shell: |
+        set -o pipefail
+        df -P / | awk 'NR==2 {gsub("%","",$5); print $5}'
+      args:
+        executable: /bin/bash
+      changed_when: false
+      register: _disk_usage
+
+    - name: Summarize health check result
+      ansible.builtin.debug:
+        msg:
+          host: "{{ inventory_hostname }}"
+          service: "{{ healthcheck_service }}"
+          service_state: "{{ _service_state }}"
+          port_open: "{{ _port_check is succeeded }}"
+          disk_used_percent: "{{ _disk_usage.stdout | int }}"
+          disk_over_threshold: "{{ (_disk_usage.stdout | int) > (healthcheck_disk_threshold_percent | int) }}"
+          status: >-
+            {{ 'HEALTHY' if (_service_state == 'running' and _port_check is succeeded and
+                (_disk_usage.stdout | int) <= (healthcheck_disk_threshold_percent | int))
+                else 'UNHEALTHY' }}

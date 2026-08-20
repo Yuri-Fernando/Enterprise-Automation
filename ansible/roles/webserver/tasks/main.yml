@@ -1,0 +1,36 @@
+---
+# tasks/main.yml — role: webserver
+# Orquestra os subarquivos de tasks. Requer a role `base` já aplicada
+# (usuários/firewall/hardening) — ver meta/main.yml (dependencies).
+
+- name: Assert supported OS family (Debian/Ubuntu)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+    fail_msg: >-
+      A role webserver foi escrita e testada (por revisão) para
+      Debian/Ubuntu (usa apt + ufw). Adapte para outras famílias antes de
+      usar em outro SO.
+    quiet: true
+  tags: [webserver, always]
+
+- name: Include nginx installation tasks
+  ansible.builtin.import_tasks: install.yml
+  tags: [webserver, install]
+
+- name: Include vhost/configuration tasks
+  ansible.builtin.import_tasks: configure.yml
+  tags: [webserver, configure]
+
+- name: Include firewall tasks (libera porta HTTP)
+  ansible.builtin.import_tasks: firewall.yml
+  tags: [webserver, firewall]
+  when: webserver_firewall_enabled | bool
+
+- name: Ensure nginx is enabled and running
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+  become: true
+  tags: [webserver, service]
