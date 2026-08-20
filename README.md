@@ -4,7 +4,7 @@
 
 ## Status
 
-🟢 **Concluído — Projeto de portfólio funcional, mantido como demonstração técnica**
+🟡 **Em desenvolvimento — projeto ativo, com deploy real em AWS ainda pendente**
 
 Plataforma de automação de infraestrutura corporativa, construída com **Terraform como núcleo de IaC**, camadas de configuração **Ansible (Linux) e PowerShell (Windows)**, um **controller Python** para inventário/observabilidade e **troubleshooting automatizado (self-healing)**, pipelines **GitHub Actions** de CI/CD e segurança, um schema **MySQL** de execuções/incidentes/inventário e um **dashboard de observabilidade**.
 
@@ -36,11 +36,12 @@ MySQL (execuções, incidentes, inventário)
 Dashboard de Observabilidade
 ```
 
-`terraform apply` é uma etapa deliberadamente **não executada** neste
-portfólio (geraria custo real de AWS) — o pipeline roda `fmt`, `validate`,
-`plan` e os scanners de segurança de verdade; o restante da plataforma
-(automação, self-healing, dashboard, notebooks) roda 100% de forma real e
-offline, sem depender de infraestrutura provisionada.
+`terraform apply` ainda **não foi executado** contra uma conta AWS real —
+é a próxima etapa planejada (ver "Próximos passos"). Até lá, o pipeline
+roda `fmt`, `validate`, `plan` e os scanners de segurança de verdade; o
+restante da plataforma (automação, self-healing, dashboard, notebooks) já
+roda 100% de forma real e offline, sem depender de infraestrutura
+provisionada.
 
 ---
 
@@ -220,6 +221,20 @@ Decisões técnicas relevantes:
 
 ---
 
+# Próximos passos
+
+- [ ] `terraform apply` real no ambiente `dev` (provisionar VPC/EC2/RDS na
+  AWS) e validação do pipeline completo contra infraestrutura real.
+- [ ] Cadastrar credenciais/OIDC no GitHub Actions para o CI rodar
+  `terraform plan` automaticamente nos PRs.
+- [ ] Subir MySQL local via Docker Compose e plugar o dashboard numa API
+  real (hoje consome `data.example.json`).
+- [ ] Incorporar o workload serverless (projeto AWS complementar) em
+  `workloads/serverless/`.
+- [ ] Revisão final de conteúdo técnico antes de usar em entrevista/CV.
+
+---
+
 # Estrutura do projeto
 
 ```text
@@ -243,9 +258,9 @@ Guia de quickstart completo em
 
 # Status
 
-🟢 **Concluído — Projeto de portfólio funcional, mantido como demonstração técnica**
+🟡 **Em desenvolvimento — projeto ativo, com deploy real em AWS ainda pendente**
 
-O projeto cobre o roadmap completo definido no escopo (v0.1 → v1.0):
+O código já cobre o roadmap completo definido no escopo (v0.1 → v1.0):
 
 - ✅ Terraform Foundation (VPC, EC2, IAM, S3);
 - ✅ Automation (Ansible + PowerShell);
@@ -253,9 +268,9 @@ O projeto cobre o roadmap completo definido no escopo (v0.1 → v1.0):
 - ✅ Enterprise (monitoring, RDS, alarmes);
 - ✅ Self-healing (troubleshooting automatizado, governança, documentação).
 
-O único item deliberadamente fora do escopo do código é o `terraform apply`
-real contra uma conta AWS — decisão de controle de custo, não uma
-pendência técnica.
+O que falta para considerar o projeto encerrado é o `terraform apply` real
+contra uma conta AWS (e os itens listados em "Próximos passos") — por isso
+o projeto permanece em desenvolvimento, não concluído.
 
 ---
 
