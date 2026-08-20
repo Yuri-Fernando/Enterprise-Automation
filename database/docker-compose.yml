@@ -1,0 +1,54 @@
+# =============================================================================
+# Enterprise Cloud Automation & Infrastructure Platform
+# MySQL 8 de desenvolvimento — persistência local para executions/incidents/
+# inventory, populado automaticamente com schema.sql + seed_data.sql no
+# primeiro start.
+#
+# Uso:
+#   1. cp .env.example .env   (e ajuste as senhas)
+#   2. docker compose up -d
+#   3. mysql -h 127.0.0.1 -P 3306 -u automation_app -p caterpillar_automation
+#
+# Ver database/README.md para detalhes completos.
+# =============================================================================
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: caterpillar-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      # Volume nomeado para persistir os dados entre restarts do container
+      - mysql_data:/var/lib/mysql
+      # Scripts de inicialização executados em ordem alfabética somente no
+      # primeiro start (quando o volume de dados está vazio):
+      # schema.sql (estrutura) antes de seed_data.sql (dados de exemplo).
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./seed_data.sql:/docker-entrypoint-initdb.d/02-seed_data.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mysql_data:
+    name: caterpillar_mysql_data
