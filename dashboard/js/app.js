@@ -222,6 +222,98 @@
     $timeline.html(items);
   }
 
+  /* ------------------------------------------------------------- Charts */
+
+  // Instâncias vivas de Chart.js, guardadas para poder destruir/recriar se
+  // renderCharts() rodar de novo (ex.: futura API real com polling).
+  let charts = {};
+
+  function destroyCharts() {
+    Object.values(charts).forEach((c) => c && c.destroy());
+    charts = {};
+  }
+
+  function renderIncidentsStatusChart(incidents) {
+    const canvas = document.getElementById("chart-incidents-status");
+    if (!canvas) return;
+
+    const open = incidents.filter((i) => i.status === "OPEN").length;
+    const resolved = incidents.filter((i) => i.status === "RESOLVED").length;
+    const other = incidents.length - open - resolved;
+
+    const labels = ["Abertos", "Resolvidos"];
+    const values = [open, resolved];
+    const colors = ["#c62828", "#1a7f37"];
+    if (other > 0) {
+      labels.push("Outros");
+      values.push(other);
+      colors.push("#94a3b8");
+    }
+
+    charts.incidentsStatus = new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: colors, borderWidth: 0 }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom" },
+        },
+      },
+    });
+  }
+
+  function renderExecutionsByToolChart(executions) {
+    const canvas = document.getElementById("chart-executions-by-tool");
+    if (!canvas) return;
+
+    const tools = Array.from(new Set(executions.map((e) => e.tool))).sort();
+    const successCounts = tools.map(
+      (tool) => executions.filter((e) => e.tool === tool && e.status === "success").length
+    );
+    const failedCounts = tools.map(
+      (tool) => executions.filter((e) => e.tool === tool && e.status === "failed").length
+    );
+
+    charts.executionsByTool = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: tools,
+        datasets: [
+          { label: "Sucesso", data: successCounts, backgroundColor: "#1a7f37" },
+          { label: "Falha", data: failedCounts, backgroundColor: "#c62828" },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } },
+        },
+        plugins: {
+          legend: { position: "bottom" },
+        },
+      },
+    });
+  }
+
+  function renderCharts(data) {
+    // Chart.js vem de CDN (igual jQuery/Bootstrap) — se estiver indisponível
+    // (ex.: demo 100% offline), os cards ficam vazios em vez de quebrar o
+    // resto do dashboard.
+    if (typeof Chart === "undefined") {
+      console.warn("[dashboard] Chart.js not loaded, skipping charts");
+      return;
+    }
+    destroyCharts();
+    renderIncidentsStatusChart(data.incidents || []);
+    renderExecutionsByToolChart(data.executions || []);
+  }
+
   /* --------------------------------------------------------------- Error */
 
   function renderLoadError(err) {
@@ -247,6 +339,7 @@
         renderInventory(data.inventory || []);
         renderExecutions(data.executions || []);
         renderIncidents(data.incidents || []);
+        renderCharts(data);
       })
       .fail(function (jqxhr, textStatus, error) {
         renderLoadError(error || textStatus);

@@ -144,6 +144,18 @@ body {
   background-color: var(--ecap-danger);
 }
 
+/* ---------------------------------------------------------------- Charts */
+
+.chart-card {
+  position: relative;
+  height: 260px;
+}
+
+.chart-card canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* ---------------------------------------------------------------- Incident timeline */
 
 .timeline {

@@ -7,6 +7,8 @@ incidentes de self-healing e inventário de recursos AWS.
 
 - HTML5 + Bootstrap 5 (CDN) — layout responsivo, cards, tabelas.
 - jQuery 3.7 (CDN) — manipulação de DOM e `$.getJSON`.
+- Chart.js 4 (CDN) — gráfico de status de incidentes e execuções por
+  ferramenta.
 - Bootstrap Icons (CDN).
 - CSS próprio em [`css/style.css`](css/style.css) (tema enterprise/clean sobre
   o Bootstrap).
@@ -51,6 +53,9 @@ não muda.
 - Cards de resumo: total de recursos, incidentes abertos, incidentes
   resolvidos, MTTR médio (média de `recovery_time_seconds` dos incidentes
   `RESOLVED`).
+- Gráfico de pizza: incidentes por status (`OPEN` vs `RESOLVED`).
+- Gráfico de barras empilhadas: execuções por ferramenta
+  (terraform/ansible/powershell/python), sucesso vs falha.
 - Tabela de inventário (ordenada por tipo de recurso).
 - Tabela de execuções recentes (ordenada por `started_at` desc).
 - Timeline de incidentes (ordenada por `created_at` desc), com badge de

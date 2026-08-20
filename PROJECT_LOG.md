@@ -270,6 +270,51 @@ reescrever `ansible/roles/base/*` nem `ansible/inventory/*` já existentes.
 e commitadas localmente (nenhum `git push` feito ainda).** Próximo passo:
 revisão do usuário + decisões da seção "Pendências / Sua Parte" abaixo.
 
+### 2026-08-20 — Sessão 3: Gráfico do dashboard + fechamento de pendências (Claude)
+
+**Contexto:** usuário pediu para conferir dashboard + notebooks, revisar se
+havia algo "bugado" num gráfico e fechar o que faltasse para terminar,
+deixando só a parte dele (AWS/Docker/Secrets) pendente. Auditoria completa do
+repositório (todos os arquivos de `dashboard/`, `notebooks/`, git log
+completo) não encontrou nenhum gráfico/chart em lugar nenhum do projeto — o
+dashboard só tinha cards de resumo, tabelas e timeline. Perguntado ao
+usuário, confirmou: era este projeto mesmo, faltava mesmo criar um gráfico
+(não havia bug num gráfico pré-existente).
+
+**Gaps reais encontrados nesta auditoria (além do gráfico):**
+- `CHANGELOG.md`/`VERSION` congelados em `0.1.0`/`0.1.0-dev` desde a Sessão 1,
+  apesar de 8 commits adicionais já terem entregue todo o roadmap v0.1→v1.0
+  do `escopo.md` (Terraform Foundation → Automation → DevOps → Enterprise →
+  Self-Healing).
+- `docs/logs/database.md` e `docs/logs/cicd-security.md` nunca foram
+  escritos (os commits `402a87c` e `9a227ee` foram feitos direto, sem log de
+  trilha nem entrada na seção "Histórico de Sessões").
+
+**Feito:**
+- `dashboard/`: adicionado gráfico de pizza "Incidentes por status" (OPEN vs
+  RESOLVED) e gráfico de barras empilhadas "Execuções por ferramenta"
+  (sucesso vs falha, por terraform/ansible/powershell/python), via Chart.js
+  4 (CDN, mesmo padrão de Bootstrap/jQuery já usado — sem build step).
+  `index.html` (`<canvas>` + tag do CDN), `js/app.js` (`renderCharts()`,
+  com fallback silencioso se Chart.js não carregar), `css/style.css`
+  (`.chart-card`), `README.md` atualizado. `node --check` validou a sintaxe
+  do `app.js`.
+- `CHANGELOG.md`: reconstruído com entradas `0.2.0`/`0.3.0`/`0.4.0`/`1.0.0`
+  cobrindo o que cada commit já entregue de fato contém (conferido lendo os
+  arquivos, não assumido), mais uma seção "Pending" no `[Unreleased]`
+  listando só o que depende do usuário.
+- `VERSION`: `0.1.0-dev` → `1.0.0-dev` (código do roadmap completo; o `-dev`
+  fica até o `terraform apply` real, que é decisão do usuário).
+
+**Não feito nesta sessão (fica para depois, não bloqueia nada):**
+- `docs/logs/database.md` e `docs/logs/cicd-security.md` retroativos —
+  baixa prioridade, conteúdo já documentado em `database/README.md` e nos
+  próprios workflows/configs.
+- Não rodei os 6 notebooks de novo (já validados ponta a ponta na Sessão 2,
+  sem mudança nos arquivos que eles tocam nesta sessão) nem abri o
+  dashboard num browser real (`node --check` cobre erro de sintaxe; teste
+  visual fica para o usuário — ver Pendências).
+
 <!--
 Template para novas sessões:
 
@@ -299,6 +344,9 @@ Template para novas sessões:
       escopo; revisar antes de usar em entrevista/currículo.
 - [ ] **GitHub Projects**: criar o board com os 6 epics (`docs/epics/`) como
       colunas/milestones, se quiser reforçar a narrativa ágil.
+- [ ] **Dashboard**: abrir `dashboard/index.html` no navegador (ou `python -m
+      http.server` na pasta) e conferir visualmente os 2 gráficos novos
+      (Chart.js) — só validei sintaxe (`node --check`), não renderização.
 
 ## Estrutura do repositório
 
