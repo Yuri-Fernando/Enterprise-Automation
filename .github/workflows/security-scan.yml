@@ -1,0 +1,57 @@
+name: Security Scan (Checkov)
+
+# Static security/compliance scan of every Terraform change.
+#
+# Policy (full rationale in .checkov.yaml and docs/logs/cicd-security.md):
+#   - HIGH / CRITICAL findings  -> HARD FAIL (blocks the PR / required check)
+#   - MEDIUM / LOW findings     -> SOFT FAIL (reported in the log, does not
+#                                   block merge — keeps the scan useful as
+#                                   the codebase evolves instead of getting
+#                                   disabled the first time it's noisy)
+# This satisfies epic-6's acceptance criterion ("checkov sem findings
+# CRITICAL nos módulos principais") and epic-4's ("pipeline falha se
+# checkov encontrar IAM permissivo") — permissive IAM (Action:"*",
+# Resource:"*") is flagged by checkov as CRITICAL/HIGH by default.
+#
+# Why checkov (not only tfsec): checkov has broader out-of-the-box AWS/IAM
+# policy coverage, native severity-based soft-fail/hard-fail config (used
+# below), and SARIF/CLI output that plugs directly into GitHub PR checks
+# without extra glue. tfsec's checks are a subset of what checkov covers
+# (and tfsec has been merged into Trivy upstream), so checkov alone keeps
+# the pipeline simpler for this project's scope.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - ".checkov.yaml"
+      - ".github/workflows/security-scan.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  checkov:
+    name: checkov (terraform/)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Official checkov-action (wraps the checkov CLI): gives PR-friendly
+      # CLI output and honors .checkov.yaml's soft-fail-on/hard-fail-on
+      # severity policy, so the job's exit code IS the merge gate — no
+      # extra scripting needed. Version pin should be revisited the first
+      # time this actually runs on GitHub (Actions cannot be dry-run
+      # locally from this environment) — see docs/logs/cicd-security.md.
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform/
+          framework: terraform
+          config_file: .checkov.yaml
+          quiet: true
+          output_format: cli
+          download_external_modules: false

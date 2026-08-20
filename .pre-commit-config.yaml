@@ -1,0 +1,42 @@
+# Pre-commit hooks — OPTIONAL local checks.
+#
+# Not required to contribute: the real enforcement happens in GitHub
+# Actions (.github/workflows/*.yml) on every PR. This file exists so you
+# can catch the cheap, fast checks (formatting, whitespace, YAML syntax)
+# before pushing, if you want to.
+#
+# To enable locally:
+#   pip install pre-commit
+#   pre-commit install
+#   pre-commit run --all-files   # one-off run against the whole repo
+#
+# See README.md "Quickstart" for the rest of the local dev setup.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+        args: ["--allow-multiple-documents"]
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.1
+    hooks:
+      - id: terraform_fmt
+
+  # Optional, disabled by default: runs the same checkov scan used in CI
+  # (.checkov.yaml) locally before commit. Requires `pip install checkov`
+  # in your environment. Can be slow on first run (downloads policies).
+  # Uncomment to enable:
+  # - repo: local
+  #   hooks:
+  #     - id: checkov
+  #       name: checkov (terraform/)
+  #       entry: checkov --config-file .checkov.yaml -d terraform
+  #       language: system
+  #       pass_filenames: false
