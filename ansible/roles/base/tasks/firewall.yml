@@ -1,0 +1,41 @@
+---
+# tasks/firewall.yml — role: base
+# ufw (Ubuntu/Debian). Idempotente: `ufw` module só altera regra se ela
+# ainda não existir com o mesmo efeito.
+
+- name: Install ufw (redundant safety net if not covered by packages.yml)
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  become: true
+
+- name: Set ufw default policy — incoming
+  community.general.ufw:
+    direction: incoming
+    policy: "{{ base_firewall_default_incoming }}"
+  become: true
+  notify: reload ufw
+
+- name: Set ufw default policy — outgoing
+  community.general.ufw:
+    direction: outgoing
+    policy: "{{ base_firewall_default_outgoing }}"
+  become: true
+  notify: reload ufw
+
+- name: Allow required inbound ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | string }}"
+    proto: "{{ item.proto | default('tcp') }}"
+    comment: "{{ item.comment | default(omit) }}"
+  become: true
+  loop: "{{ base_firewall_allow_ports }}"
+  loop_control:
+    label: "{{ item.port }}/{{ item.proto | default('tcp') }}"
+  notify: reload ufw
+
+- name: Enable ufw
+  community.general.ufw:
+    state: enabled
+  become: true

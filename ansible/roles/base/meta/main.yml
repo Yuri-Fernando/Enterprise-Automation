@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  role_name: base
+  author: Yuri Fernando Dubbern
+  description: >-
+    Configuração base para instâncias Linux (Ubuntu/Debian) provisionadas
+    pelo Terraform: usuários/grupos, pacotes essenciais, firewall (ufw) e
+    hardening básico. Parte do Enterprise Cloud Automation & Infrastructure
+    Platform (projeto de portfólio).
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - system
+    - security
+    - hardening
+    - firewall
+
+dependencies: []

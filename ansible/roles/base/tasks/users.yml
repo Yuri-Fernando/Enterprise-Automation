@@ -1,0 +1,45 @@
+---
+# tasks/users.yml — role: base
+
+- name: Ensure required groups exist
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    state: "{{ item.state | default('present') }}"
+  become: true
+  loop: "{{ base_groups }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Ensure managed users exist
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups | default([]) }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    append: true
+    create_home: true
+    state: present
+  become: true
+  loop: "{{ base_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Authorize SSH public keys for managed users (when provided)
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.ssh_public_key }}"
+    state: present
+  become: true
+  loop: "{{ base_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.ssh_public_key is defined and item.ssh_public_key | length > 0
+
+- name: Grant passwordless sudo to the sudo group
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/90-base-sudo-group
+    content: "%sudo ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+  become: true

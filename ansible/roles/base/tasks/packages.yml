@@ -1,0 +1,33 @@
+---
+# tasks/packages.yml — role: base
+
+- name: Update apt cache (max 1h old)
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Install essential packages
+  ansible.builtin.apt:
+    name: "{{ base_packages }}"
+    state: present
+  become: true
+
+- name: Enable unattended security upgrades
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+  become: true
+  when: base_automatic_security_updates | bool
+
+- name: Configure unattended-upgrades to run automatically
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: base_automatic_security_updates | bool

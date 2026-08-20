@@ -1,0 +1,58 @@
+---
+# defaults/main.yml — role: base
+# Valores padrão sobrescrevíveis via inventory/group_vars/host_vars ou -e.
+
+# Usuários administrativos a garantir na instância. Cada item pode trazer
+# `groups` e `shell` próprios; `ssh_public_key` é opcional (se ausente, o
+# usuário é criado sem chave autorizada — configure depois via Ansible
+# Vault com a chave real, nunca hardcoded aqui).
+base_users:
+  - name: deploy
+    groups: ["sudo"]
+    shell: /bin/bash
+    ssh_public_key: ""
+
+# Grupos adicionais a garantir antes de criar os usuários.
+base_groups:
+  - name: deploy
+    state: present
+
+# Pacotes essenciais instalados em toda instância Linux gerenciada.
+base_packages:
+  - curl
+  - git
+  - htop
+  - unzip
+  - vim
+  - fail2ban
+  - ufw
+  - python3
+  - python3-pip
+  - ca-certificates
+  - chrony
+
+# --- Firewall (ufw) --------------------------------------------------------
+base_firewall_enabled: true
+base_firewall_default_incoming: deny
+base_firewall_default_outgoing: allow
+
+# Portas liberadas por padrão em todo host (SSH). Roles específicas (ex.:
+# webserver) adicionam as próprias portas via `ufw_allow_rules` extra ou
+# tasks próprias.
+base_firewall_allow_ports:
+  - port: 22
+    proto: tcp
+    comment: "SSH"
+
+# --- Hardening básico -------------------------------------------------------
+base_disable_root_ssh_login: true
+base_disable_password_authentication: true
+base_automatic_security_updates: true
+
+# fail2ban — bantime/findtime em segundos.
+base_fail2ban_bantime: 3600
+base_fail2ban_findtime: 600
+base_fail2ban_maxretry: 5
+
+# Timezone padrão das instâncias.
+base_timezone: "UTC"

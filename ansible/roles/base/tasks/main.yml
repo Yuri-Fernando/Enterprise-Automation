@@ -1,0 +1,37 @@
+---
+# tasks/main.yml — role: base
+# Orquestra os subarquivos de tasks. Cada um carrega sua própria tag para
+# permitir execução seletiva (ex.: `--tags firewall`).
+
+- name: Assert supported OS family (Debian/Ubuntu)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+    fail_msg: >-
+      A role base foi escrita e testada (por revisão) para Debian/Ubuntu
+      (usa apt + ufw). Adapte tasks/packages.yml e tasks/firewall.yml para
+      outras famílias (ex.: RedHat + firewalld) antes de usar em outro SO.
+    quiet: true
+  tags: [base, always]
+
+- name: Include package installation tasks
+  ansible.builtin.import_tasks: packages.yml
+  tags: [base, packages]
+
+- name: Include users/groups tasks
+  ansible.builtin.import_tasks: users.yml
+  tags: [base, users]
+
+- name: Include firewall tasks
+  ansible.builtin.import_tasks: firewall.yml
+  tags: [base, firewall]
+  when: base_firewall_enabled | bool
+
+- name: Include hardening tasks
+  ansible.builtin.import_tasks: hardening.yml
+  tags: [base, hardening]
+
+- name: Set instance timezone
+  community.general.timezone:
+    name: "{{ base_timezone }}"
+  tags: [base, timezone]

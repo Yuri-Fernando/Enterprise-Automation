@@ -1,0 +1,67 @@
+---
+# tasks/hardening.yml — role: base
+# Hardening básico de SSH + fail2ban. Não pretende ser um benchmark CIS
+# completo — cobre os pontos mais comuns cobrados em automação enterprise:
+# desabilitar login root por SSH, exigir chave (sem senha) e banir IPs após
+# tentativas repetidas de força bruta.
+
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin\s'
+    line: "PermitRootLogin no"
+    state: present
+    validate: "sshd -t -f %s"
+  become: true
+  notify: restart sshd
+  when: base_disable_root_ssh_login | bool
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication\s'
+    line: "PasswordAuthentication no"
+    state: present
+    validate: "sshd -t -f %s"
+  become: true
+  notify: restart sshd
+  when: base_disable_password_authentication | bool
+
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+  become: true
+
+- name: Configure fail2ban jail for sshd
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [DEFAULT]
+      bantime  = {{ base_fail2ban_bantime }}
+      findtime = {{ base_fail2ban_findtime }}
+      maxretry = {{ base_fail2ban_maxretry }}
+
+      [sshd]
+      enabled = true
+      port    = ssh
+      backend = systemd
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: restart fail2ban
+
+- name: Ensure fail2ban is enabled and running
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  become: true
+
+- name: Ensure chrony (NTP) is enabled and running
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true
+  become: true
