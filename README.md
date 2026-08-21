@@ -276,9 +276,6 @@ o projeto permanece em desenvolvimento, não concluído.
 
 # Contexto / Observações
 
-- Projeto de portfólio pessoal, **sem afiliação com a Caterpillar** — o
-  nome da vaga que inspirou o escopo é citado apenas como contexto de
-  origem em [`escopo.md`](escopo.md).
 - Código 100% público, sem dados/credenciais reais (AWS mockada via
   `moto`, banco de dados de exemplo, dashboard em modo demo).
 - Histórico completo de decisões técnicas e sessões de trabalho em
