@@ -10,6 +10,27 @@ Plataforma de automação de infraestrutura corporativa, construída com **Terra
 
 O projeto foi inspirado pelos requisitos técnicos de uma vaga pública de **Enterprise Automation Engineer**. **Não é software da Caterpillar nem a representa** — é uma plataforma simulada, construída inteiramente como peça de portfólio para demonstrar competências de automação de infraestrutura enterprise.
 
+Posicionamento no portfólio: este é o **Cloud Platform Engineering Reference
+Implementation** — a camada de infraestrutura e entrega sobre a qual outros
+workloads rodam (notadamente o **Argus**). Ver
+[`docs/platform-consumers.md`](docs/platform-consumers.md).
+
+### Status das capacidades
+
+| Capacidade | Status |
+|---|---|
+| Terraform (VPC · compute · RDS · IAM · observability) | ✅ módulos + environments |
+| Ansible (Linux) / PowerShell DSC (Windows) | ✅ roles + playbooks + Pester |
+| Controller Python (inventário · observabilidade · self-healing) | ✅ com testes |
+| CI/CD (GitHub Actions: fmt/validate/plan + security scan) | ✅ |
+| Schema MySQL (execuções · incidentes · inventário) | ✅ + migrations |
+| Dashboard de observabilidade | ✅ estático |
+| ADRs de arquitetura de plataforma | ✅ `docs/decisions/ADR-001..004` |
+| Policy as Code (OPA para Terraform · Kyverno para K8s) | 🗺️ `policies/` — políticas válidas, execução no CI = próximo passo |
+| Kubernetes / Helm (workloads da plataforma) | 🗺️ `kubernetes/` + `helm/` skeleton |
+| GitOps (Argo CD) | 🗺️ `gitops/argocd/` — `Application` manifests |
+| `terraform apply` real em AWS | 🗺️ planejado (hoje: `fmt`/`validate`/`plan`) |
+
 ---
 
 # Sobre o Projeto
@@ -243,11 +264,15 @@ ansible/           Configuração Linux (roles, playbooks)
 powershell/        Automação Windows (módulos, scripts, testes Pester)
 automation/        Controller Python, troubleshooting/self-healing, boto3
 workloads/         Workloads adicionais (ex.: serverless)
+kubernetes/        Manifests base dos workloads da plataforma (skeleton)
+helm/              Chart do automation-controller (skeleton)
+gitops/            Argo CD Applications (GitOps — ADR-002)
+policies/          Policy as Code: OPA (Terraform) + Kyverno (K8s)
 database/          Schema MySQL (execuções, incidentes, inventário)
 dashboard/         Dashboard estático (HTML/JS/Bootstrap/Chart.js)
 notebooks/         Um notebook Jupyter executável por etapa do roadmap
 tests/             Testes agregados (python/terraform/ansible)
-docs/              Arquitetura, epics, guias de setup, logs por trilha
+docs/              Arquitetura, ADRs (docs/decisions/), epics, setup, logs
 .github/workflows/ Pipelines de CI/CD
 ```
 

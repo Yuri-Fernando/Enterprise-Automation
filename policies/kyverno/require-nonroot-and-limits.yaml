@@ -1,0 +1,36 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-nonroot-and-limits
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: run-as-non-root
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      validate:
+        message: "containers devem rodar com runAsNonRoot: true"
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  runAsNonRoot: true
+    - name: resource-limits-required
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      validate:
+        message: "todo container precisa de requests e limits de cpu/memory"
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    memory: "?*"
+                    cpu: "?*"
+                  limits:
+                    memory: "?*"
+                    cpu: "?*"

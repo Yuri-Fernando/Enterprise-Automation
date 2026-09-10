@@ -1,0 +1,26 @@
+image:
+  repository: ghcr.io/yuri-fernando/automation-controller
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+serviceAccount:
+  # IRSA — role com permissão mínima (SSM read, CloudWatch put, EC2 describe)
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+
+env:
+  DB_HOST: ""
+  LOG_LEVEL: INFO
+
+podDisruptionBudget:
+  minAvailable: 1
