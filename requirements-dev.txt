@@ -1,0 +1,6 @@
+# Test/dev-only dependencies for automation/tests and tests/python. Installed
+# on top of requirements.txt (see .github/workflows/python-tests.yml).
+
+pytest==9.0.1
+pytest-cov==7.1.0
+moto==5.2.2

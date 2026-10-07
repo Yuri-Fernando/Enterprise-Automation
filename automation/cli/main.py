@@ -31,6 +31,7 @@ from automation.reports.incident_report import (
     render_incidents_summary_markdown,
     save_report,
 )
+from automation.reports.slo_report import DEFAULT_DEMO_DATA_PATH, build_slo_report, render_slo_markdown
 from automation.troubleshooting.health_check import run_health_check
 
 
@@ -184,6 +185,63 @@ def report_cmd(from_json_path: Optional[str], incident_id: Optional[int], recent
     except (FileNotFoundError, LookupError) as exc:
         click.echo(str(exc), err=True)
         sys.exit(1)
+
+    if output_path:
+        saved_path = save_report(rendered, output_path)
+        click.echo(f"Report saved to {saved_path}")
+    else:
+        click.echo(rendered)
+
+
+@cli.command("metrics-serve")
+@click.option("--host", default="0.0.0.0", show_default=True)
+@click.option("--port", type=int, default=8080, show_default=True)
+def metrics_serve_cmd(host: str, port: int) -> None:
+    """Serve Prometheus /metrics + /healthz + /ready (see automation/metrics/exporter.py)."""
+    from automation.metrics.exporter import run_server
+
+    click.echo(f"Serving /metrics, /healthz, /ready on {host}:{port} (Ctrl+C to stop)")
+    server = run_server(host=host, port=port)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.shutdown()
+
+
+@cli.command("slo-report")
+@click.option("--from-json", "from_json_path", default=DEFAULT_DEMO_DATA_PATH, show_default=True, help="Dashboard-style JSON file with an 'incidents' array.")
+@click.option("--recent", type=int, default=None, help="Instead of --from-json, fetch the N most recent incidents from MySQL.")
+@click.option("--mttr-target", type=float, default=None, help="Override the default MTTR target (seconds).")
+@click.option("--availability-target", type=float, default=None, help="Override the default availability SLO target (0-1).")
+@click.option("--format", "output_format", type=click.Choice(["markdown", "json"]), default="markdown", show_default=True)
+@click.option("--output", "output_path", default=None, help="If set, write the report to this file instead of stdout.")
+def slo_report_cmd(
+    from_json_path: str,
+    recent: Optional[int],
+    mttr_target: Optional[float],
+    availability_target: Optional[float],
+    output_format: str,
+    output_path: Optional[str],
+) -> None:
+    """Compute MTTR / availability SLI / error budget from incident history."""
+    if recent is not None:
+        try:
+            incidents = fetch_recent_incidents(limit=recent)
+        except DatabaseUnavailableError as exc:
+            click.echo(f"Banco de dados indisponível: {exc}", err=True)
+            sys.exit(2)
+    else:
+        with open(from_json_path, "r", encoding="utf-8") as handle:
+            incidents = json.load(handle).get("incidents", [])
+
+    kwargs = {}
+    if mttr_target is not None:
+        kwargs["mttr_target_seconds"] = mttr_target
+    if availability_target is not None:
+        kwargs["availability_slo_target"] = availability_target
+
+    report = build_slo_report(incidents, **kwargs)
+    rendered = json.dumps(report.to_dict(), indent=2) if output_format == "json" else render_slo_markdown(report)
 
     if output_path:
         saved_path = save_report(rendered, output_path)

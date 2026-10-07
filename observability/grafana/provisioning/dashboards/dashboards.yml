@@ -1,0 +1,16 @@
+apiVersion: 1
+
+providers:
+  - name: automation-dashboards
+    orgId: 1
+    folder: "Automation Platform"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      # ^ matches observability/grafana/provisioning/dashboards/json/ on the
+      # host, both now under the single provisioning/ bind mount declared
+      # in observability/docker-compose.yml.
+      foldersFromFilesStructure: false

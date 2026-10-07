@@ -1,0 +1,30 @@
+# Promtail ships two real log sources into Loki:
+#   1. Every container's stdout/stderr via the Docker daemon's JSON log
+#      files (mounted read-only below) — this is how the
+#      automation-controller container's own logs (Click/Python logging
+#      from automation/metrics/exporter.py, orchestrator runs, etc.) and
+#      Grafana/Prometheus/cAdvisor's logs all reach Loki.
+#   2. The Docker container metadata (name, image) are attached as labels
+#      via docker_sd_configs, so Grafana's Explore/Logs view can filter by
+#      {container="automation-controller"}.
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: [__meta_docker_container_name]
+        regex: "/(.*)"
+        target_label: container
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream

@@ -1,0 +1,18 @@
+# Runtime dependencies for automation/ (Automation Controller CLI + exporter).
+#
+# This file was missing despite .github/workflows/python-tests.yml already
+# expecting it (see that workflow's own NOTE comment) — found during the
+# DevOps/Cloud hardening pass (see PROJECT_LOG.md) while adding the
+# Prometheus exporter, which needed a place to declare its own new
+# dependency (prometheus_client). Versions pinned to what was validated
+# locally with Python 3.10 (see docs/logs/).
+
+click==8.5.0
+boto3==1.43.74
+psutil==7.0.0
+prometheus_client==0.24.1
+
+# Optional at runtime (automation/reports/incident_report.py degrades to
+# DatabaseUnavailableError if this isn't installed or MySQL isn't
+# reachable) but required for --recent/--incident-id/MySQL-backed metrics.
+mysql-connector-python==9.1.0

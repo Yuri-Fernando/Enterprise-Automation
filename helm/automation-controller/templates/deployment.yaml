@@ -15,11 +15,32 @@ spec:
       labels:
         app.kubernetes.io/name: {{ .Chart.Name }}
     spec:
+      # Matches policies/kyverno/require-nonroot-and-limits.yaml (runAsNonRoot +
+      # resource limits) and the non-root `app` user (uid/gid 10001) created
+      # in the repo-root Dockerfile. Pod-level securityContext applies to
+      # every container; closes the Trivy KSV-0118/KSV-0012/KSV-0030
+      # findings from `security/trivy-scan.sh` against this chart (see
+      # security/sbom/trivy-fs-report.txt).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
+          # Container-level hardening (KSV-0001/0003/0014): no privilege
+          # escalation, all Linux capabilities dropped, read-only root fs —
+          # safe here because the exporter (automation/metrics/exporter.py)
+          # never writes to disk at runtime, it's a stateless HTTP server.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           livenessProbe:
             httpGet: { path: /healthz, port: 8080 }
             initialDelaySeconds: 10

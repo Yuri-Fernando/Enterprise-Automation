@@ -63,3 +63,22 @@ não muda.
   tempo de recovery.
 
 Todo texto vindo dos dados é escapado (`esc()`) antes de ir para o HTML.
+
+## Relação com `observability/` (Grafana)
+
+Este dashboard estático (HTML/JS, sem backend) e o Grafana em
+`observability/` são **complementares, não duplicados**:
+
+- Este dashboard lê um snapshot (`js/data.example.json` ou uma API futura)
+  e é pensado para abrir direto no navegador, sem infraestrutura.
+- `observability/`'s Grafana lê métricas **ao vivo** via Prometheus,
+  raspando `automation/metrics/exporter.py` (que por sua vez lê os mesmos
+  dados — MySQL ou o mesmo `data.example.json` em modo demo). O painel
+  "Automation Platform — Overview & SLO" do Grafana cobre o mesmo
+  MTTR/incidentes por status que este dashboard, mais o que este
+  dashboard não tem: CPU/memória por container (cAdvisor) e o painel de
+  SLO/error budget (ver `automation/reports/slo_report.py`).
+
+Use este dashboard para a demo rápida sem Docker; use `observability/`
+quando quiser dados ao vivo + logs centralizados (Loki) + alertas reais
+do Prometheus.

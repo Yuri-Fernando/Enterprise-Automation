@@ -1,0 +1,28 @@
+# Prometheus scrape config for the local observability stack
+# (observability/docker-compose.yml). Scrapes:
+#   - Prometheus itself.
+#   - automation-controller's own /metrics (automation/metrics/exporter.py).
+#   - cadvisor, for per-container CPU/memory/network metrics of every
+#     container in this compose stack (the "node_exporter/cadvisor" option
+#     from the audit item — cadvisor chosen because it needs no host mount
+#     tricks on Windows+Docker Desktop, unlike node_exporter).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: automation-controller
+    static_configs:
+      - targets: ["automation-controller:8080"]
+        labels:
+          service: automation-controller
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+        labels:
+          service: cadvisor

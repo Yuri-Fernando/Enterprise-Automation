@@ -1,0 +1,132 @@
+# =============================================================================
+# Local observability stack: Prometheus + Grafana (metrics) and Loki +
+# Promtail (centralized logs), scraping/collecting from the real
+# automation-controller container (automation/metrics/exporter.py, built
+# from the repo root Dockerfile) and from cAdvisor (per-container
+# CPU/memory, chosen over node_exporter because it needs no privileged
+# host-path mounts on Windows + Docker Desktop).
+#
+# Usage (from the repo root):
+#   docker build -t automation-controller:local -f Dockerfile .
+#   docker compose -f observability/docker-compose.yml up -d
+#   Prometheus: http://localhost:9090
+#   Grafana:    http://localhost:3000  (admin / admin, change on first login)
+#   Loki:       http://localhost:3100  (queried via Grafana's Explore, not
+#               directly — no standalone log UI is part of this stack)
+#
+# OBS_CONFIG_DIR: if this repo lives on a cloud-synced drive (Google
+# Drive/OneDrive virtual mount — e.g. a "G:\..." path backed by Google
+# Drive Desktop), Docker Desktop's bind mounts of files/dirs under that
+# path can fail or silently serve stale/wrong content ("is a directory" /
+# "not a directory" OCI mount errors — confirmed in this repo's own setup).
+# Rather than hide that, run `observability/run-local.sh` (or
+# `run-local.ps1`), which stages prometheus/, grafana/, loki/, promtail/
+# into a local non-synced temp dir and sets OBS_CONFIG_DIR to it before
+# calling `docker compose`. On a normal local filesystem OBS_CONFIG_DIR is
+# unnecessary — it defaults to "." (this directory), so plain
+# `docker compose up -d` still works as usual.
+#
+# What this does NOT do (see README.md "o que não foi feito" / CHANGELOG.md):
+#   - Nothing here is deployed to AWS/GKE — this is a local-only stack, same
+#     "no-cost-by-default" posture as the rest of the repo.
+#   - Grafana has no persistent volume for dashboards created by hand in the
+#     UI — dashboards are provisioned as code from
+#     observability/grafana/provisioning/dashboards/json/*.json (edit the
+#     JSON, don't rely on clicking around and expecting it to survive
+#     `down`).
+# =============================================================================
+
+services:
+  automation-controller:
+    image: automation-controller:local
+    container_name: automation-controller
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # No MYSQL_* env vars set on purpose -> exporter runs in demo-JSON mode
+    # (dashboard/js/data.example.json) unless pointed at a real DB (see
+    # database/docker-compose.yml and set MYSQL_HOST=host.docker.internal).
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ${OBS_CONFIG_DIR:-.}/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    ports:
+      - "9090:9090"
+    depends_on:
+      - automation-controller
+      - cadvisor
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8081:8080"
+    volumes:
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ${OBS_CONFIG_DIR:-.}/loki:/etc/loki:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+
+  promtail:
+    image: grafana/promtail:3.2.1
+    container_name: promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ${OBS_CONFIG_DIR:-.}/promtail:/etc/promtail:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      # Single mount of the whole provisioning/ tree (datasources +
+      # dashboards + dashboards/json) — nesting a second bind mount inside
+      # an already-mounted directory fails on Docker Desktop ("read-only
+      # file system" trying to create the inner mountpoint), so
+      # datasources/dashboards/json all live under one provisioning/ folder
+      # mounted once instead.
+      - ${OBS_CONFIG_DIR:-.}/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+
+volumes:
+  prometheus_data:
+    name: automation_prometheus_data
+  loki_data:
+    name: automation_loki_data
+  grafana_data:
+    name: automation_grafana_data
