@@ -315,6 +315,95 @@ usuário, confirmou: era este projeto mesmo, faltava mesmo criar um gráfico
   dashboard num browser real (`node --check` cobre erro de sintaxe; teste
   visual fica para o usuário — ver Pendências).
 
+### 2026-10-07 — Sessão 4: DevOps/Cloud hardening (Claude)
+
+**Contexto:** item #3 de prioridade da auditoria de portfólio
+(`Auditoria_Portfolio_Skills_Stacks_Repos_Certificacoes.txt`, seção "4)
+DEVOPS / CLOUD"): Prometheus/Grafana, logs centralizados, Trivy+SBOM,
+OPA/Conftest no CI, Jenkinsfile, módulo GCP, chaos test, SLI/SLO/MTTR,
+custo/tagging/budget. Explicitamente fora de escopo: "deploy real mínimo"
+(custa dinheiro, decisão do usuário).
+
+**Feito (profundidade real, não superficial — tudo testado/executado de
+verdade nesta sessão, não só escrito):**
+
+- **Observability stack** (`observability/`): subida de verdade via
+  `docker compose` — 6 containers (automation-controller, prometheus,
+  cadvisor, loki, promtail, grafana) confirmados `Up`, Prometheus
+  raspando os 3 targets (`up` em todos), Grafana com os 2 datasources
+  (Prometheus+Loki) e o dashboard `automation-overview` provisionados
+  (confirmado via API, não só "deveria funcionar"), Loki recebendo logs
+  reais do container `automation-controller` (confirmado via query real).
+  Bloqueio real encontrado e documentado: bind mounts do Docker Desktop
+  falham (`is a directory`/`not a directory`) quando a config está nesta
+  pasta sincronizada por Google Drive — contornado com
+  `observability/run-local.{sh,ps1}` (stage em `C:\tmp`, mesmo padrão já
+  documentado em `~/.claude/rules/node-env.md` para `node_modules`).
+- **Exporter Prometheus** (`automation/metrics/exporter.py`) +
+  `Dockerfile` (raiz, antes inexistente apesar do Helm chart já referenciar
+  uma imagem) — build real (`docker build`), smoke-test real
+  (`/healthz`, `/metrics` respondendo com métricas reais via `docker run`).
+- **OPA/conftest**: bug real encontrado (chaves de tag minúsculas que
+  nunca batiam com as tags reais, capitalizadas) rodando a policy contra
+  um `terraform plan` de verdade — gerado via **LocalStack** (Docker, sem
+  custo AWS, com endpoints override temporário em `providers.tf` que foi
+  revertido via `git checkout` depois de extrair o `plan.json` fixture).
+  Corrigido + testado com 2 fixtures (`policies/opa/testdata/`) + script
+  (`tests/terraform/test-opa-policies.sh`).
+- **Kyverno**: testado de verdade com `kyverno test` (CLI baixada à parte,
+  sem admin — ver "Ferramentas" abaixo) contra 2 Pods fixture
+  (`policies/kyverno/testdata/`) — 4/4 resultados esperados confirmados,
+  incluindo um teste negativo manual (resultado esperado trocado de
+  propósito) para provar que o `kyverno test` realmente detecta
+  divergência, não só "passa sempre".
+- **Trivy + SBOM**: scan real (fs + imagem) rodado de ponta a ponta —
+  0 CRITICAL, SBOM CycloneDX (`trivy`) + SPDX (`syft`) gerados e
+  commitados em `security/sbom/`. Achado real: Helm chart sem
+  `securityContext` (13 findings, 3 HIGH) — corrigido, ficou 1 MEDIUM
+  (falso positivo de allowlist de registry do Trivy).
+- **Chaos tests** (`automation/tests/test_chaos_resilience.py`): kill -9
+  real e repetido num processo real, cenário de falha irrecuperável.
+  Achado real: `restart_local_process` deixava `FileNotFoundError`
+  escapar sem tratamento — corrigido (mirror do padrão já usado em
+  `run_ansible_playbook`/`run_powershell_script`).
+- **SLI/SLO/MTTR** (`automation/reports/slo_report.py`): MTTR=44.25s e
+  disponibilidade=80% calculados a partir do dataset real de incidentes
+  (`dashboard/js/data.example.json`), com error budget. Painel Grafana
+  dedicado.
+- **GCP module** + **Budget module**: `terraform validate` real passou
+  nos dois (nunca `plan`/`apply`'d — sem projeto GCP nem decisão de custo
+  AWS).
+- **`requirements.txt`/`requirements-dev.txt`**: faltavam, apesar de
+  `python-tests.yml` já esperar por eles — corrigido como efeito colateral
+  de declarar a dependência nova (`prometheus_client`) do exporter.
+- **Jenkinsfile**: espelha os workflows reais do GitHub Actions — não
+  testado contra um Jenkins real (sem infraestrutura Jenkins disponível).
+- Todos os 70 testes pytest existentes + os novos continuam passando
+  (`pytest automation/tests tests/python`), `terraform fmt`/`validate`
+  limpo em todos os módulos/environments
+  (`tests/terraform/test-terraform.sh`).
+
+**Ferramentas instaladas nesta sessão (sem admin — `choco` falhou por
+permissão):** `trivy`, `syft`, `conftest`, `opa`, `kyverno` CLI — baixados
+como binários standalone em `C:\tmp\devops-tools\` direto dos releases do
+GitHub (não ficam no `PATH` permanente da máquina, só usados via `export
+PATH=...` nesta sessão).
+
+**Não feito (fora de escopo, documentado, não inventado):**
+
+- `terraform apply` real (AWS ou GCP) — decisão/custo do usuário.
+- Jenkins real rodando o `Jenkinsfile` — sem infraestrutura Jenkins.
+- Regras OPA adicionais que uma versão antiga do `policies/README.md`
+  mencionava (SG `0.0.0.0/0`, RDS público, S3 público, imagem `latest`,
+  `PodDisruptionBudget`) — nunca existiram como `.rego`/Kyverno reais;
+  removidas da documentação por serem descrição de política inexistente,
+  não implementadas agora (fora do pedido original de "pegue as regras já
+  existentes").
+- MTTD (tempo até detecção) e disponibilidade real (uptime %) — este
+  projeto não persiste timestamp de início do problema nem série temporal
+  de heartbeat; documentado explicitamente no docstring de
+  `slo_report.py` em vez de inventar um número.
+
 <!--
 Template para novas sessões:
 

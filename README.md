@@ -26,9 +26,16 @@ workloads rodam (notadamente o **Argus**). Ver
 | Schema MySQL (execuções · incidentes · inventário) | ✅ + migrations |
 | Dashboard de observabilidade | ✅ estático |
 | ADRs de arquitetura de plataforma | ✅ `docs/decisions/ADR-001..004` |
-| Policy as Code (OPA para Terraform · Kyverno para K8s) | 🗺️ `policies/` — políticas válidas, execução no CI = próximo passo |
-| Kubernetes / Helm (workloads da plataforma) | 🗺️ `kubernetes/` + `helm/` skeleton |
+| Policy as Code (OPA/conftest + Kyverno) | ✅ wired no CI (`.github/workflows/policy-gate.yml`) — fixtures reais, bug de case-sensitivity corrigido |
+| Kubernetes / Helm (workloads da plataforma) | 🗺️ `kubernetes/` + `helm/` (chart com `securityContext` real; sem cluster real) |
 | GitOps (Argo CD) | 🗺️ `gitops/argocd/` — `Application` manifests |
+| Observabilidade (Prometheus · Grafana · Loki) | ✅ `observability/` — stack local real, validada ponta a ponta |
+| Container image + SBOM (Trivy · syft) | ✅ `Dockerfile` + `security/` — 0 CRITICAL, SBOM CycloneDX/SPDX versionado |
+| Multi-cloud (GCP) | 🗺️ `terraform/modules/gcp/` — módulo validado, nunca `plan`/`apply`'d |
+| Custo/orçamento (AWS Budgets) | 🗺️ `terraform/modules/budget/` — módulo validado, nunca aplicado |
+| Chaos/failure testing | ✅ `automation/tests/test_chaos_resilience.py` |
+| SLI/SLO/MTTR | ✅ `automation/reports/slo_report.py` + painel Grafana |
+| CI alternativo (Jenkins) | 🗺️ `Jenkinsfile` — espelha os workflows reais, não testado contra Jenkins real |
 | `terraform apply` real em AWS | 🗺️ planejado (hoje: `fmt`/`validate`/`plan`) |
 
 ---
@@ -113,6 +120,27 @@ O projeto tem como objetivos:
   **testes Pester** (PowerShell) rodados de verdade.
 - **6 notebooks Jupyter executáveis**, um por etapa do roadmap, todos
   validados de ponta a ponta (`jupyter nbconvert --execute`, 0 erros).
+- **Observabilidade real** (`observability/`) — Prometheus + Grafana
+  (dashboards provisionados como código) + Loki/Promtail (logs
+  centralizados), rodando localmente via `docker-compose`, validados de
+  ponta a ponta com o exporter Prometheus real do `automation-controller`
+  (`automation/metrics/exporter.py`).
+- **Trivy + SBOM** (`security/trivy-scan.sh`) — scan real de dependências,
+  Dockerfile, Helm/K8s e da imagem `automation-controller`; SBOM
+  CycloneDX + SPDX versionados em `security/sbom/`.
+- **Policy as Code testado de verdade** — `conftest`/OPA e `kyverno test`
+  rodando contra fixtures reais no CI (`.github/workflows/policy-gate.yml`),
+  incluindo a correção de um bug real na policy de tags obrigatórias.
+- **Chaos engineering** — testes que matam processos reais repetidamente
+  e validam convergência/degradação correta
+  (`automation/tests/test_chaos_resilience.py`).
+- **SLI/SLO/MTTR** calculados a partir de incidentes reais
+  (`automation/reports/slo_report.py`, comando `automation slo-report`),
+  com painel de error budget no dashboard Grafana.
+- **Multi-cloud e custo** — módulo Terraform GCP mínimo
+  (`terraform/modules/gcp/`) e módulo AWS Budgets
+  (`terraform/modules/budget/`), ambos validados (`terraform validate`),
+  nunca aplicados contra uma conta real.
 
 ---
 
