@@ -111,10 +111,21 @@ resource "aws_launch_template" "this" {
 
 # ---------------------------------------------------------------------------
 # Application Load Balancer + target group
+#
+# AWS caps aws_lb/aws_lb_target_group `name` at 32 characters. var.name_prefix
+# alone can already be 32 chars (e.g. "enterprise-cloud-automation-dev"),
+# which overflows as soon as "-alb"/"-tg" is appended — confirmed for real
+# running `terraform plan` against this exact dev name_prefix (see
+# PROJECT_LOG.md): "name cannot be longer than 32 characters". Truncate to
+# 28 chars so the longest suffix used below ("-alb", 4 chars) still fits.
 # ---------------------------------------------------------------------------
 
+locals {
+  lb_name_prefix = substr(var.name_prefix, 0, 28)
+}
+
 resource "aws_lb" "this" {
-  name               = "${var.name_prefix}-alb"
+  name               = "${local.lb_name_prefix}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [var.web_security_group_id]
@@ -126,7 +137,7 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "this" {
-  name     = "${var.name_prefix}-tg"
+  name     = "${local.lb_name_prefix}-tg"
   port     = var.app_port
   protocol = "HTTP"
   vpc_id   = var.vpc_id
