@@ -1,0 +1,14 @@
+# Deliberately missing runAsNonRoot and resource requests/limits, to prove
+# policies/kyverno/require-nonroot-and-limits.yaml actually blocks what it
+# claims to.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: automation-controller-violation
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: automation-controller
+spec:
+  containers:
+    - name: automation-controller
+      image: "ghcr.io/yuri-fernando/automation-controller:0.1.0"

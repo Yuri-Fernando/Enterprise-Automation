@@ -76,3 +76,27 @@ Rodando os scripts localmente contra o estado atual do repositório:
   falha).
 - Exit code `1` se algum `fmt` ou `validate` falhou de verdade.
 - Exit code `2` se o executável `terraform` não foi encontrado no PATH.
+
+## Atualização (2026-10-07): rede OK nesta sessão + 2 novos scripts
+
+Ao contrário da nota acima (sessão anterior), nesta sessão o acesso ao
+Terraform Registry funcionou normalmente e `terraform validate` rodou de
+verdade (não `SKIP`) em todos os módulos, incluindo os dois novos
+(`terraform/modules/gcp/`, `terraform/modules/budget/`) — variância do
+ambiente, não uma mudança de configuração. O bug de `storage_encrypted`
+duplicado mencionado nos "Achados" abaixo já foi corrigido numa sessão
+anterior (não reaparece mais).
+
+Dois novos scripts, mesmo princípio ("sem custo, sem apply"), mas testando
+**policy-as-code** em vez de sintaxe Terraform:
+
+- **`test-opa-policies.sh`** — roda `conftest test` contra os fixtures de
+  `policies/opa/testdata/` (um `terraform plan` real, gerado via
+  LocalStack — ver `PROJECT_LOG.md` — compliant e um violando
+  deliberadamente). Requer `conftest` no PATH.
+- **`test-kyverno-policies.sh`** — roda `kyverno test` contra os fixtures
+  de `policies/kyverno/testdata/` (2 Pods, um compliant e um violando).
+  Requer o CLI `kyverno` no PATH.
+
+Ambos são executados automaticamente no CI por
+`.github/workflows/policy-gate.yml`.

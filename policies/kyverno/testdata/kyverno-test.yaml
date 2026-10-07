@@ -1,0 +1,37 @@
+# `kyverno test .` entrypoint for policies/kyverno/require-nonroot-and-limits.yaml.
+# Run from this directory (or `kyverno test policies/kyverno/testdata` from
+# the repo root) — see .github/workflows/policy-gate.yml.
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: require-nonroot-and-limits-test
+policies:
+  - ../require-nonroot-and-limits.yaml
+resources:
+  - pod-compliant.yaml
+  - pod-violation.yaml
+results:
+  - policy: require-nonroot-and-limits
+    rule: run-as-non-root
+    resources:
+      - automation-controller-compliant
+    kind: Pod
+    result: pass
+  - policy: require-nonroot-and-limits
+    rule: resource-limits-required
+    resources:
+      - automation-controller-compliant
+    kind: Pod
+    result: pass
+  - policy: require-nonroot-and-limits
+    rule: run-as-non-root
+    resources:
+      - automation-controller-violation
+    kind: Pod
+    result: fail
+  - policy: require-nonroot-and-limits
+    rule: resource-limits-required
+    resources:
+      - automation-controller-violation
+    kind: Pod
+    result: fail

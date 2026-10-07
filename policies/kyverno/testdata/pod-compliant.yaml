@@ -1,0 +1,24 @@
+# Mirrors helm/automation-controller/templates/deployment.yaml's Pod spec
+# (same image, resources from values.yaml, runAsNonRoot matching the
+# non-root USER created in the repo-root Dockerfile) — a real shape, not an
+# invented one, used as a conftest/kyverno-cli fixture.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: automation-controller-compliant
+  namespace: platform
+  labels:
+    app.kubernetes.io/name: automation-controller
+spec:
+  containers:
+    - name: automation-controller
+      image: "ghcr.io/yuri-fernando/automation-controller:0.1.0"
+      securityContext:
+        runAsNonRoot: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

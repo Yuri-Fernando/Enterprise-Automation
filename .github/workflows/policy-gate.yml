@@ -1,0 +1,121 @@
+name: Policy Gate (OPA/Conftest + Kyverno)
+
+# Real policy-as-code CI gate for policies/opa/ and policies/kyverno/.
+#
+# Before this workflow existed, both policy sets were committed but never
+# executed anywhere (see policies/README.md's old "próximo passo" note) —
+# policies/opa/terraform_tags.rego even had a real bug (required lowercase
+# tag keys that never match this project's actual capitalized tags, so it
+# would have vacuously "passed" forever without ever catching anything;
+# see CHANGELOG.md / PROJECT_LOG.md).
+#
+# Two jobs, both always-on (no AWS credentials needed):
+#   - opa-conftest: runs tests/terraform/test-opa-policies.sh against the
+#     committed plan.json fixtures in policies/opa/testdata/ (one
+#     compliant, one deliberately violating).
+#   - kyverno: runs tests/terraform/test-kyverno-policies.sh (kyverno test)
+#     against the committed Pod fixtures in policies/kyverno/testdata/.
+#
+# This intentionally tests the POLICIES against fixtures, not a live
+# `terraform plan`/live cluster — matching this repo's existing
+# no-cost-by-default posture (see terraform-ci.yml's `plan` job, which only
+# runs against real AWS when AWS_ROLE_TO_ASSUME is configured). A follow-up
+# step below additionally runs conftest against a real plan.json only when
+# that same secret is present, so the policy gate tightens automatically
+# once real AWS access is wired up, without any workflow change needed.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "policies/**"
+      - "terraform/**"
+      - ".github/workflows/policy-gate.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  opa-conftest:
+    name: OPA / conftest (fixtures)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install conftest
+        run: |
+          CONFTEST_VERSION="0.71.1"
+          curl -sL -o conftest.tar.gz "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          tar -xzf conftest.tar.gz conftest
+          sudo mv conftest /usr/local/bin/conftest
+          conftest --version
+
+      - name: Run OPA policy fixture tests
+        run: bash tests/terraform/test-opa-policies.sh
+
+  kyverno-test:
+    name: Kyverno (fixtures)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Kyverno CLI
+        uses: kyverno/action-install-cli@v0.3.4
+        with:
+          release: "v1.19.1"
+
+      - name: Run Kyverno policy fixture tests
+        run: bash tests/terraform/test-kyverno-policies.sh
+
+  # Only runs once real AWS access is configured (same gating condition as
+  # terraform-ci.yml's `plan` job) — tightens the gate from "fixtures only"
+  # to "the actual plan for every environment", with zero workflow changes
+  # needed when that day comes.
+  opa-conftest-live-plan:
+    name: OPA / conftest (live plan, ${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, staging, prod]
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION || 'sa-east-1' }}
+
+      - name: Terraform init
+        working-directory: terraform/environments/${{ matrix.environment }}
+        run: terraform init
+
+      - name: Terraform plan -> JSON
+        working-directory: terraform/environments/${{ matrix.environment }}
+        run: |
+          terraform plan -input=false -out=plan.out
+          terraform show -json plan.out > plan.json
+
+      - name: Install conftest
+        run: |
+          CONFTEST_VERSION="0.71.1"
+          curl -sL -o conftest.tar.gz "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          tar -xzf conftest.tar.gz conftest
+          sudo mv conftest /usr/local/bin/conftest
+
+      - name: Run conftest against the real plan
+        run: conftest test --all-namespaces -p policies/opa "terraform/environments/${{ matrix.environment }}/plan.json"
