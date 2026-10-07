@@ -47,7 +47,25 @@ def restart_local_process(
     if stop_process is not None:
         _terminate_quietly(stop_process)
 
-    new_process = subprocess.Popen(list(start_command), **popen_kwargs)
+    # A start_command that can't even be launched (typo, missing
+    # interpreter, bad path -- a real failure mode a chaos test surfaced:
+    # see automation/tests/test_chaos_resilience.py) must degrade to a
+    # well-formed failure result, not propagate an unhandled
+    # FileNotFoundError up through the orchestrator. Mirrors the same
+    # not-found handling already used by run_ansible_playbook/
+    # run_powershell_script below.
+    try:
+        new_process = subprocess.Popen(list(start_command), **popen_kwargs)
+    except (FileNotFoundError, PermissionError) as exc:
+        recovery_time_seconds = round(time.monotonic() - started_at, 3)
+        return {
+            "action": f"restart local process: {' '.join(str(c) for c in start_command)}",
+            "success": False,
+            "pid": None,
+            "process": None,
+            "recovery_time_seconds": recovery_time_seconds,
+            "error": f"could not launch start_command: {exc}",
+        }
 
     deadline = time.monotonic() + wait_seconds
     recovered = False

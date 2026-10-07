@@ -49,6 +49,25 @@ def test_restart_local_process_starts_http_server_and_recovers():
         process.wait(timeout=5)
 
 
+def test_restart_local_process_bad_start_command_returns_error_not_raise():
+    # Regression test for a real bug found by automation/tests/
+    # test_chaos_resilience.py: a start_command pointing at a nonexistent
+    # binary used to raise an unhandled FileNotFoundError here instead of
+    # degrading to a well-formed failure result like the ansible/
+    # powershell remediation paths already did.
+    port = find_free_port()
+    result = restart_local_process(
+        start_command=["this-binary-does-not-exist-anywhere", "--bogus"],
+        port=port,
+        host="127.0.0.1",
+        wait_seconds=1.0,
+    )
+    assert result["success"] is False
+    assert result["pid"] is None
+    assert result["process"] is None
+    assert "error" in result
+
+
 def test_run_ansible_playbook_missing_binary_returns_error_not_raise():
     # ansible-playbook is not expected to be on PATH on this Windows dev box;
     # the important contract is "never raises", regardless of environment.
