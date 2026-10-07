@@ -1,0 +1,89 @@
+name: Trivy Scan + SBOM
+
+# Real Trivy scans in CI, mirroring security/trivy-scan.sh (run that
+# locally for the full interactive version with saved reports under
+# security/sbom/). Needs no AWS credentials and no manual setup — unlike
+# terraform-ci.yml's `plan` job, this always runs.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "automation/**"
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      - "Dockerfile"
+      - "helm/**"
+      - "kubernetes/**"
+      - "policies/kyverno/**"
+      - ".github/workflows/trivy-sbom.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-fs:
+    name: trivy fs (deps + Dockerfile/Helm/K8s misconfig)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # terraform/ is excluded -- already covered by Checkov
+      # (security-scan.yml). See security/trivy-scan.sh's comment.
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          skip-dirs: terraform
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          exit-code: "0"
+
+      - name: Trivy filesystem scan (CRITICAL gate)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          skip-dirs: terraform
+          severity: CRITICAL
+          exit-code: "1"
+
+  trivy-image-and-sbom:
+    name: trivy image + SBOM (automation-controller)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build automation-controller image
+        run: docker build -t automation-controller:ci -f Dockerfile .
+
+      - name: Trivy image scan (report)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: automation-controller:ci
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          exit-code: "0"
+
+      - name: Trivy image scan (CRITICAL gate)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: automation-controller:ci
+          severity: CRITICAL
+          exit-code: "1"
+
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: automation-controller:ci
+          format: cyclonedx
+          output: automation-controller.cdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-controller-sbom
+          path: automation-controller.cdx.json
+          retention-days: 30
