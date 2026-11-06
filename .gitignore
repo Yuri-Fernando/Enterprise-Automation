@@ -56,3 +56,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Plataforma local (floci) — estado, kubeconfig e backend real nunca vão para o git
+platform/.state/
+platform/.kube/
+platform/terraform/_shared/backend-aws.hcl
+platform/floci/data/
