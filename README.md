@@ -381,7 +381,7 @@ Multi-cloud real (GCP) além do módulo validado
 | v0.4.0 | 2026-08-19 | Enterprise: módulo `monitoring` (CloudWatch), outputs do módulo `database`, schema MySQL + `docker-compose`, dashboard (cards/tabelas/timeline) |
 | v1.0.0 | 2026-08-20 | Dashboard: gráficos Chart.js (incidentes por status, execuções por ferramenta) |
 | v1.1.0-dev | 2026-10-07 | DevOps/Cloud hardening: observabilidade real (Prometheus/Grafana/Loki), exporter + `Dockerfile`, SLO/MTTR real, Trivy+SBOM, OPA/Kyverno testados no CI (bug de tags corrigido), módulo GCP, módulo AWS Budgets, chaos tests, `Jenkinsfile` |
-| v1.2.0-dev | 2026-11-06 | **Plataforma AWS local (floci)** — `platform/`: 6 stacks Terraform de alvo duplo (floci/AWS) aplicadas no emulador, módulo `eks` (promovido do Argus), EKS emulado (k3s) com ArgoCD + kube-prometheus-stack, 7 apps do ecossistema via Kustomize, Credit Score serverless (Lambda+DynamoDB) e `e2e.py` 10/10. Ver [`platform/README.md`](platform/README.md) e [`docs/floci-compat-matrix.md`](docs/floci-compat-matrix.md) |
+| v1.2.0-dev | 2026-11-06 | Módulo `terraform/modules/eks` (promovido do Argus e completado com os padrões do workshop: access entries em modo API, add-ons gerenciados, IRSA, node group SPOT). Consumido pelo projeto Master **AWS Project** (plataforma AWS emulada no floci + AWS real), que referencia este repositório como submodule de módulos Terraform |
 
 Changelog completo em [`CHANGELOG.md`](CHANGELOG.md); histórico de decisões e
 sessões em [`PROJECT_LOG.md`](PROJECT_LOG.md).
@@ -415,9 +415,7 @@ sessões em [`PROJECT_LOG.md`](PROJECT_LOG.md).
 
 ## ▶️ Como rodar localmente
 
-> **Plataforma AWS completa sem conta AWS (v1.2.0-dev):** VPC, EKS, ECR, OIDC, WAF, AMP e o ecossistema de apps rodam
-> no emulador [floci](https://github.com/floci-io/floci) — `python platform/lab.py floci-up && python platform/lab.py up`.
-> Passo a passo, resultados verificados e limites do emulador em [`platform/README.md`](platform/README.md).
+> **v1.2.0-dev:** os módulos `networking`, `iam` e `eks` deste repositório são a base da plataforma do projeto Master *AWS Project*, que aplica tudo no emulador [floci](https://github.com/floci-io/floci) (R$ 0) ou na AWS real.
 
 Pré-requisitos: Python 3.10, Terraform ≥ 1.15, Docker Desktop (para MySQL e
 para a stack de observabilidade), PowerShell 7 (para os testes Pester).
